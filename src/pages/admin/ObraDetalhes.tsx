@@ -3,8 +3,9 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2 } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
+import { useSendReport } from "@/hooks/useSendReport";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper } from "@/components/obras/EtapaStepper";
@@ -17,6 +18,7 @@ export default function ObraDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: obra, isLoading } = useObra(id);
+  const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
 
   if (isLoading) {
     return (
@@ -77,12 +79,26 @@ export default function ObraDetalhes() {
               </p>
             </div>
           </div>
-          <Link to={`/obras/${obra.id}/editar`}>
-            <Button variant="outline">
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => sendReport(obra.id)}
+              disabled={isSendingReport}
+            >
+              {isSendingReport ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Enviar Relatório
             </Button>
-          </Link>
+            <Link to={`/obras/${obra.id}/editar`}>
+              <Button variant="outline">
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Info Cards */}

@@ -1,7 +1,7 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, CheckSquare, Clock, Plus, ArrowRight } from "lucide-react";
+import { Building2, CheckSquare, Clock, Plus, ArrowRight, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useObraStats, useObras } from "@/hooks/useObras";
 import { usePendingEtapasCount } from "@/hooks/useEtapas";
@@ -10,6 +10,9 @@ import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ObraStatusChart } from "@/components/dashboard/ObraStatusChart";
+import { EtapaStatusChart } from "@/components/dashboard/EtapaStatusChart";
+import { MonthlyObrasChart } from "@/components/dashboard/MonthlyObrasChart";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading: loadingStats } = useObraStats();
@@ -96,6 +99,13 @@ export default function AdminDashboard() {
               )}
             </Card>
           ))}
+        </div>
+
+        {/* Analytics Charts */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <ObraStatusChart stats={stats} isLoading={loadingStats} />
+          <EtapaStatusChart />
+          <MonthlyObrasChart />
         </div>
 
         {/* Recent Works */}
