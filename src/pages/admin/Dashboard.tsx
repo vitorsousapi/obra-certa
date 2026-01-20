@@ -173,7 +173,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="w-32 ml-4">
-                      <ObraProgressBar etapas={(obra as any).etapas} showLabel={false} />
+                      <ObraProgressBar etapas={obra.etapas} showLabel={false} />
                     </div>
                   </Link>
                 ))}
