@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      etapa_anexos: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          nome: string
+          storage_path: string
+          tamanho: number
+          tipo: string
+          uploaded_by: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          nome: string
+          storage_path: string
+          tamanho: number
+          tipo: string
+          uploaded_by: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          nome?: string
+          storage_path?: string
+          tamanho?: number
+          tipo?: string
+          uploaded_by?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_anexos_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapa_anexos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etapas: {
         Row: {
           created_at: string

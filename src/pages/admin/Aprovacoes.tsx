@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Clock, Eye, Building2 } from "lucide-react";
+import { Check, X, Clock, Eye, Building2, Paperclip } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
@@ -215,6 +216,13 @@ function EtapaCard({
               </Badge>
             )}
           </div>
+
+          {/* Anexos */}
+          {showActions && (
+            <div className="border rounded-md p-3">
+              <EtapaAnexos etapaId={etapa.id} readOnly />
+            </div>
+          )}
 
           {/* Observações do colaborador */}
           {etapa.observacoes && showActions && (

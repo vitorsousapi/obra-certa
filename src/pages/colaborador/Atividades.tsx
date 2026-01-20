@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ClipboardList, Building2, Calendar, Send, Clock, Check, X, AlertTriangle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ClipboardList, Building2, Calendar, Send, Clock, Check, X, AlertTriangle, Paperclip } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +22,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
@@ -417,20 +419,29 @@ export default function ColaboradorAtividades() {
 
       {/* Submit Dialog */}
       <Dialog open={!!submittingEtapa} onOpenChange={() => setSubmittingEtapa(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Submeter Etapa</DialogTitle>
+            <DialogTitle>Submeter Etapa: {submittingEtapa?.titulo}</DialogTitle>
             <DialogDescription>
-              Adicione observações sobre o trabalho realizado antes de enviar para aprovação.
+              Adicione fotos, documentos e observações sobre o trabalho realizado.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Descreva o que foi feito, dificuldades encontradas, etc..."
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              rows={4}
-            />
+          <div className="py-4 space-y-4">
+            {/* Anexos */}
+            <EtapaAnexos etapaId={submittingEtapa?.id || ""} />
+
+            <Separator />
+
+            {/* Observações */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Observações</label>
+              <Textarea
+                placeholder="Descreva o que foi feito, dificuldades encontradas, etc..."
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                rows={4}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSubmittingEtapa(null)}>
@@ -440,6 +451,7 @@ export default function ColaboradorAtividades() {
               onClick={handleSubmit}
               disabled={submitEtapa.isPending}
             >
+              <Send className="h-4 w-4 mr-2" />
               {submitEtapa.isPending ? "Enviando..." : "Enviar para Aprovação"}
             </Button>
           </DialogFooter>
