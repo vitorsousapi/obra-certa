@@ -35,8 +35,8 @@ async function imageToBase64(url: string): Promise<string | null> {
 }
 
 // Helper to get public URL from storage path
-function getPublicStorageUrl(supabaseUrl: string, storagePath: string): string {
-  return `${supabaseUrl}/storage/v1/object/public/${storagePath}`;
+function getPublicStorageUrl(supabaseUrl: string, bucketName: string, storagePath: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${storagePath}`;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -102,8 +102,9 @@ const handler = async (req: Request): Promise<Response> => {
           if (!anexosByEtapa[anexo.etapa_id]) {
             anexosByEtapa[anexo.etapa_id] = [];
           }
-          // Generate fresh public URL from storage path
-          const publicUrl = getPublicStorageUrl(supabaseUrl, anexo.storage_path);
+          // Generate fresh public URL from storage path with correct bucket name
+          const publicUrl = getPublicStorageUrl(supabaseUrl, "etapa-anexos", anexo.storage_path);
+          console.log("Generated public URL for anexo:", publicUrl);
           anexosByEtapa[anexo.etapa_id].push({
             ...anexo,
             url: publicUrl
