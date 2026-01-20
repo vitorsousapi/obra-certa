@@ -25,9 +25,8 @@ import { ArrowLeft } from "lucide-react";
 import { useObra, useCreateObra, useUpdateObra } from "@/hooks/useObras";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
-
-type ObraStatus = Database["public"]["Enums"]["obra_status"];
 
 const obraSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -43,6 +42,7 @@ type ObraFormData = z.infer<typeof obraSchema>;
 export default function ObraForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const isEditing = !!id;
 
   const { data: obra, isLoading } = useObra(id);
@@ -99,6 +99,23 @@ export default function ObraForm() {
     }
   };
 
+  // Show validation errors as toast
+  const onError = (errors: any) => {
+    console.error("Erros de validação:", errors);
+    const errorMessages = Object.values(errors)
+      .map((error: any) => error.message)
+      .filter(Boolean)
+      .join(", ");
+    
+    if (errorMessages) {
+      toast({
+        title: "Preencha os campos obrigatórios",
+        description: errorMessages,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isEditing && isLoading) {
     return (
       <AdminLayout title="Carregando...">
@@ -134,7 +151,7 @@ export default function ObraForm() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="nome"
