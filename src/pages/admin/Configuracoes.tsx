@@ -67,8 +67,14 @@ export default function Configuracoes() {
 
   const handleSaveProfile = async () => {
     setIsUpdating(true);
-    await updateProfile.mutateAsync({ full_name: fullName });
-    setIsUpdating(false);
+    try {
+      await updateProfile.mutateAsync({ full_name: fullName });
+    } catch (error) {
+      // Error already handled by mutation onError
+      console.error("Erro ao salvar perfil:", error);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleChangePassword = async () => {

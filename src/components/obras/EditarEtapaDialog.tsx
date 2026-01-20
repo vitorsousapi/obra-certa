@@ -147,24 +147,29 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
   const onSubmit = async (data: EtapaFormData) => {
     if (!etapa) return;
     
-    // Update etapa basic info
-    await updateEtapa.mutateAsync({
-      id: etapa.id,
-      titulo: data.titulo,
-      descricao: data.descricao || null,
-      prazo: data.prazo || null,
-      status: data.status,
-      observacoes: data.observacoes || null,
-    });
+    try {
+      // Update etapa basic info
+      await updateEtapa.mutateAsync({
+        id: etapa.id,
+        titulo: data.titulo,
+        descricao: data.descricao || null,
+        prazo: data.prazo || null,
+        status: data.status,
+        observacoes: data.observacoes || null,
+      });
 
-    // Update responsáveis
-    await manageResponsaveis.mutateAsync({
-      etapaId: etapa.id,
-      responsavelIds: selectedResponsaveis,
-      obraId,
-    });
+      // Update responsáveis
+      await manageResponsaveis.mutateAsync({
+        etapaId: etapa.id,
+        responsavelIds: selectedResponsaveis,
+        obraId,
+      });
 
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (error) {
+      // Error is already handled by the mutation's onError
+      console.error("Erro ao atualizar etapa:", error);
+    }
   };
 
   const handleDelete = async () => {
