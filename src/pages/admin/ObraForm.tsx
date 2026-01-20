@@ -34,7 +34,7 @@ const obraSchema = z.object({
   cliente_email: z.string().email("Email inválido"),
   data_inicio: z.string().min(1, "Data de início é obrigatória"),
   data_prevista: z.string().min(1, "Data prevista é obrigatória"),
-  status: z.enum(["nao_iniciada", "em_andamento", "aguardando_aprovacao", "concluida", "cancelada"]),
+  status: z.enum(["nao_iniciada", "em_andamento", "aguardando_aprovacao", "concluida", "cancelada"]).default("nao_iniciada"),
 });
 
 type ObraFormData = z.infer<typeof obraSchema>;
@@ -87,7 +87,7 @@ export default function ObraForm() {
           cliente_email: data.cliente_email,
           data_inicio: data.data_inicio,
           data_prevista: data.data_prevista,
-          status: data.status,
+          status: data.status || "nao_iniciada",
         });
         if (newObra?.id) {
           navigate(`/obras/${newObra.id}`);
@@ -230,7 +230,7 @@ export default function ObraForm() {
                   />
                 </div>
 
-                {isEditing && (
+                {isEditing ? (
                   <FormField
                     control={form.control}
                     name="status"
@@ -258,6 +258,8 @@ export default function ObraForm() {
                       </FormItem>
                     )}
                   />
+                ) : (
+                  <input type="hidden" {...form.register("status")} value="nao_iniciada" />
                 )}
 
                 <div className="flex justify-end gap-2 pt-4">
