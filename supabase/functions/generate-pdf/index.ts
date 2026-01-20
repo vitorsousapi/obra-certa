@@ -10,6 +10,23 @@ const corsHeaders = {
 
 interface GeneratePdfRequest {
   obraId: string;
+  logoUrl?: string;
+}
+
+// Helper to convert image URL to base64
+async function imageToBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const buffer = await blob.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const mimeType = blob.type || "image/png";
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.error("Error converting image to base64:", error);
+    return null;
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -18,7 +35,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { obraId }: GeneratePdfRequest = await req.json();
+    const { obraId, logoUrl }: GeneratePdfRequest = await req.json();
 
     if (!obraId) {
       return new Response(
@@ -57,6 +74,27 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Fetch anexos for all etapas
+    const etapaIds = obra.etapas?.map((e: any) => e.id) || [];
+    let anexosByEtapa: Record<string, any[]> = {};
+    
+    if (etapaIds.length > 0) {
+      const { data: anexos } = await supabase
+        .from("etapa_anexos")
+        .select("id, etapa_id, nome, tipo, url")
+        .in("etapa_id", etapaIds)
+        .order("created_at", { ascending: true });
+
+      if (anexos) {
+        for (const anexo of anexos) {
+          if (!anexosByEtapa[anexo.etapa_id]) {
+            anexosByEtapa[anexo.etapa_id] = [];
+          }
+          anexosByEtapa[anexo.etapa_id].push(anexo);
+        }
+      }
+    }
+
     const etapas = obra.etapas?.sort((a: any, b: any) => a.ordem - b.ordem) || [];
     const totalEtapas = etapas.length;
     const etapasConcluidas = etapas.filter((e: any) => e.status === "aprovada").length;
@@ -81,17 +119,34 @@ const handler = async (req: Request): Promise<Response> => {
     // Create PDF
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const marginLeft = 20;
     const marginRight = 20;
     const contentWidth = pageWidth - marginLeft - marginRight;
     let yPos = 20;
 
-    // Helper function to add text with word wrap
-    const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number = 6): number => {
-      const lines = doc.splitTextToSize(text, maxWidth);
-      doc.text(lines, x, y);
-      return y + (lines.length * lineHeight);
+    // Helper to check page break
+    const checkPageBreak = (neededSpace: number) => {
+      if (yPos + neededSpace > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+        return true;
+      }
+      return false;
     };
+
+    // Add logo if provided
+    if (logoUrl) {
+      const logoBase64 = await imageToBase64(logoUrl);
+      if (logoBase64) {
+        try {
+          doc.addImage(logoBase64, "PNG", marginLeft, yPos, 40, 15);
+          yPos += 20;
+        } catch (e) {
+          console.error("Error adding logo:", e);
+        }
+      }
+    }
 
     // Header
     doc.setFontSize(22);
@@ -152,50 +207,104 @@ const handler = async (req: Request): Promise<Response> => {
     doc.text(`${etapasConcluidas} de ${totalEtapas} etapas concluídas`, marginLeft, yPos);
     yPos += 15;
 
-    // Etapas Table
+    // Etapas section
     if (totalEtapas > 0) {
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("Etapas", marginLeft, yPos);
-      yPos += 8;
-
-      // Table header
-      doc.setFillColor(243, 244, 246);
-      doc.rect(marginLeft, yPos, contentWidth, 8, "F");
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("Etapa", marginLeft + 2, yPos + 5.5);
-      doc.text("Status", marginLeft + 80, yPos + 5.5);
-      doc.text("Responsável", marginLeft + 115, yPos + 5.5);
       yPos += 10;
 
-      // Table rows
-      doc.setFont("helvetica", "normal");
       for (const etapa of etapas) {
-        if (yPos > 260) {
-          doc.addPage();
-          yPos = 20;
+        checkPageBreak(40);
+
+        // Etapa header
+        doc.setFillColor(249, 250, 251);
+        doc.rect(marginLeft, yPos, contentWidth, 12, "F");
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${etapa.ordem}. ${etapa.titulo}`, marginLeft + 3, yPos + 8);
+        
+        // Status badge
+        doc.setFontSize(8);
+        const statusText = etapaStatusLabels[etapa.status] || etapa.status;
+        const statusWidth = doc.getTextWidth(statusText) + 6;
+        const statusX = marginLeft + contentWidth - statusWidth - 3;
+        
+        // Status color
+        const statusColors: Record<string, [number, number, number]> = {
+          pendente: [156, 163, 175],
+          em_andamento: [59, 130, 246],
+          submetida: [245, 158, 11],
+          aprovada: [34, 197, 94],
+          rejeitada: [239, 68, 68],
+        };
+        const color = statusColors[etapa.status] || [156, 163, 175];
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.roundedRect(statusX, yPos + 2, statusWidth, 8, 2, 2, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.text(statusText, statusX + 3, yPos + 7.5);
+        doc.setTextColor(0, 0, 0);
+        
+        yPos += 15;
+
+        // Etapa details
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Responsável: ${etapa.responsavel?.full_name || "Não atribuído"}`, marginLeft + 5, yPos);
+        yPos += 6;
+
+        // Anexos (images) for this etapa
+        const etapaAnexos = anexosByEtapa[etapa.id] || [];
+        const imageAnexos = etapaAnexos.filter((a: any) => a.tipo?.startsWith("image/"));
+
+        if (imageAnexos.length > 0) {
+          checkPageBreak(50);
+          doc.setFont("helvetica", "bold");
+          doc.text("Fotos:", marginLeft + 5, yPos);
+          yPos += 5;
+
+          // Display images in a grid (3 per row)
+          let imgX = marginLeft + 5;
+          const imgWidth = 50;
+          const imgHeight = 35;
+          const imgGap = 5;
+          let imagesInRow = 0;
+
+          for (const anexo of imageAnexos) {
+            if (imagesInRow >= 3) {
+              imagesInRow = 0;
+              imgX = marginLeft + 5;
+              yPos += imgHeight + imgGap;
+              checkPageBreak(imgHeight + 10);
+            }
+
+            const imgBase64 = await imageToBase64(anexo.url);
+            if (imgBase64) {
+              try {
+                doc.addImage(imgBase64, "JPEG", imgX, yPos, imgWidth, imgHeight);
+                imgX += imgWidth + imgGap;
+                imagesInRow++;
+              } catch (e) {
+                console.error("Error adding image:", e);
+              }
+            }
+          }
+
+          yPos += imgHeight + 10;
+        } else {
+          yPos += 5;
         }
 
+        // Separator line
         doc.setDrawColor(229, 231, 235);
-        doc.line(marginLeft, yPos + 6, marginLeft + contentWidth, yPos + 6);
-
-        const etapaTitle = `${etapa.ordem}. ${etapa.titulo}`;
-        const truncatedTitle = etapaTitle.length > 40 ? etapaTitle.substring(0, 37) + "..." : etapaTitle;
-        doc.text(truncatedTitle, marginLeft + 2, yPos + 4);
-        doc.text(etapaStatusLabels[etapa.status] || etapa.status, marginLeft + 80, yPos + 4);
-        doc.text(etapa.responsavel?.full_name || "Não atribuído", marginLeft + 115, yPos + 4);
-        yPos += 10;
+        doc.line(marginLeft, yPos, marginLeft + contentWidth, yPos);
+        yPos += 8;
       }
-      yPos += 10;
     }
 
     // Signature section
     if (obra.assinatura_data && obra.assinatura_nome) {
-      if (yPos > 220) {
-        doc.addPage();
-        yPos = 20;
-      }
+      checkPageBreak(70);
 
       doc.setFillColor(240, 253, 244);
       doc.setDrawColor(34, 197, 94);
@@ -233,49 +342,41 @@ const handler = async (req: Request): Promise<Response> => {
         doc.text(obra.assinatura_ip, marginLeft + 15, yPos);
       }
 
-      // Reset text color
       doc.setTextColor(0, 0, 0);
       yPos += 20;
 
-      // Add signature image if available
+      // Add signature image
       if (obra.assinatura_imagem_url) {
-        try {
-          const imgResponse = await fetch(obra.assinatura_imagem_url);
-          if (imgResponse.ok) {
-            const imgBlob = await imgResponse.blob();
-            const imgBuffer = await imgBlob.arrayBuffer();
-            const imgBase64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
-            const imgData = `data:image/png;base64,${imgBase64}`;
-            
-            if (yPos > 230) {
-              doc.addPage();
-              yPos = 20;
-            }
-
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.text("Assinatura:", marginLeft, yPos);
-            yPos += 5;
-
-            doc.addImage(imgData, "PNG", marginLeft, yPos, 60, 25);
+        const sigBase64 = await imageToBase64(obra.assinatura_imagem_url);
+        if (sigBase64) {
+          checkPageBreak(40);
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.text("Assinatura:", marginLeft, yPos);
+          yPos += 5;
+          try {
+            doc.addImage(sigBase64, "PNG", marginLeft, yPos, 60, 25);
             yPos += 35;
+          } catch (e) {
+            console.error("Error adding signature:", e);
           }
-        } catch (imgError) {
-          console.error("Error loading signature image:", imgError);
         }
       }
     }
 
-    // Footer
-    yPos = doc.internal.pageSize.getHeight() - 15;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(107, 114, 128);
-    doc.text(
-      `Relatório gerado automaticamente pelo TaviList em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`,
-      marginLeft,
-      yPos
-    );
+    // Footer on each page
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(107, 114, 128);
+      doc.text(
+        `Relatório gerado pelo TaviList em ${new Date().toLocaleDateString("pt-BR")} - Página ${i} de ${totalPages}`,
+        marginLeft,
+        pageHeight - 10
+      );
+    }
 
     // Generate PDF as base64
     const pdfBase64 = doc.output("datauristring");
