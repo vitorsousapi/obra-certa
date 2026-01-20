@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      etapas: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          obra_id: string
+          observacoes: string | null
+          ordem: number
+          prazo: string | null
+          responsavel_id: string | null
+          status: Database["public"]["Enums"]["etapa_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          obra_id: string
+          observacoes?: string | null
+          ordem?: number
+          prazo?: string | null
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["etapa_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          obra_id?: string
+          observacoes?: string | null
+          ordem?: number
+          prazo?: string | null
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["etapa_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapas_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          cliente_email: string
+          cliente_nome: string
+          created_at: string
+          created_by: string
+          data_conclusao: string | null
+          data_inicio: string
+          data_prevista: string
+          id: string
+          nome: string
+          status: Database["public"]["Enums"]["obra_status"]
+          updated_at: string
+        }
+        Insert: {
+          cliente_email: string
+          cliente_nome: string
+          created_at?: string
+          created_by: string
+          data_conclusao?: string | null
+          data_inicio?: string
+          data_prevista: string
+          id?: string
+          nome: string
+          status?: Database["public"]["Enums"]["obra_status"]
+          updated_at?: string
+        }
+        Update: {
+          cliente_email?: string
+          cliente_nome?: string
+          created_at?: string
+          created_by?: string
+          data_conclusao?: string | null
+          data_inicio?: string
+          data_prevista?: string
+          id?: string
+          nome?: string
+          status?: Database["public"]["Enums"]["obra_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obras_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -84,6 +191,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "colaborador"
+      etapa_status:
+        | "pendente"
+        | "em_andamento"
+        | "submetida"
+        | "aprovada"
+        | "rejeitada"
+      obra_status:
+        | "nao_iniciada"
+        | "em_andamento"
+        | "aguardando_aprovacao"
+        | "concluida"
+        | "cancelada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -212,6 +331,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "colaborador"],
+      etapa_status: [
+        "pendente",
+        "em_andamento",
+        "submetida",
+        "aprovada",
+        "rejeitada",
+      ],
+      obra_status: [
+        "nao_iniciada",
+        "em_andamento",
+        "aguardando_aprovacao",
+        "concluida",
+        "cancelada",
+      ],
     },
   },
 } as const
