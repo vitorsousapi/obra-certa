@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -68,22 +68,33 @@ export function PdfPreviewDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [filename, setFilename] = useState<string>("relatorio.pdf");
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadPreview = async () => {
     setIsLoading(true);
     setPdfData(null);
+    setError(null);
 
     try {
-      // Get logo as base64
-      const logoUrl = `${window.location.origin}/images/logo-tavitrum.png`;
-      const logoBase64 = await imageToBase64(logoUrl);
+      // Get logo as base64 - but don't fail if it doesn't work
+      let logoBase64: string | null = null;
+      try {
+        const logoUrl = `${window.location.origin}/images/logo-tavitrum.png`;
+        logoBase64 = await imageToBase64(logoUrl);
+      } catch (e) {
+        console.warn("Could not load logo:", e);
+      }
 
-      const { data, error } = await supabase.functions.invoke("generate-pdf", {
+      console.log("Calling generate-pdf with obraId:", obraId);
+      const { data, error: invokeError } = await supabase.functions.invoke("generate-pdf", {
         body: { obraId, logoUrl: logoBase64 },
       });
 
-      if (error) {
+      console.log("Response from generate-pdf:", { data: !!data, error: invokeError });
+
+      if (invokeError) {
+        console.error("Edge function error:", invokeError);
         throw new Error("Erro ao gerar PDF");
       }
 
@@ -93,13 +104,14 @@ export function PdfPreviewDialog({
 
       setPdfData(data.pdf);
       setFilename(data.filename || "relatorio.pdf");
-    } catch (error: any) {
+    } catch (err: any) {
+      console.error("Error loading PDF:", err);
+      setError(err.message || "Erro desconhecido");
       toast({
         title: "Erro ao carregar pré-visualização",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
-      onOpenChange(false);
     } finally {
       setIsLoading(false);
     }
@@ -123,19 +135,23 @@ export function PdfPreviewDialog({
     onOpenChange(false);
   };
 
-  // Load preview when dialog opens
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen && !pdfData && !isLoading) {
-      loadPreview();
-    }
-    if (!newOpen) {
-      setPdfData(null);
-    }
-    onOpenChange(newOpen);
+  const handleRetry = () => {
+    loadPreview();
   };
 
+  // Load preview when dialog opens
+  React.useEffect(() => {
+    if (open && !pdfData && !isLoading) {
+      loadPreview();
+    }
+    if (!open) {
+      setPdfData(null);
+      setError(null);
+    }
+  }, [open]);
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>Pré-visualização do Relatório</DialogTitle>
@@ -155,15 +171,18 @@ export function PdfPreviewDialog({
               title="PDF Preview"
             />
           ) : (
-            <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg">
+            <div className="flex flex-col items-center justify-center h-full bg-muted/30 rounded-lg gap-4">
               <p className="text-muted-foreground">
-                Não foi possível carregar o PDF
+                {error || "Não foi possível carregar o PDF"}
               </p>
+              <Button variant="outline" onClick={handleRetry}>
+                Tentar novamente
+              </Button>
             </div>
           )}
         </div>
 
-        <DialogFooter className="p-6 pt-0 gap-2">
+        <DialogFooter className="p-6 pt-0 gap-2 sm:gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4 mr-2" />
             Fechar
