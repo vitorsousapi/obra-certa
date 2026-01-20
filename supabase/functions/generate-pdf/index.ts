@@ -154,25 +154,42 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Add logo if provided (can be base64 or URL)
     if (logoUrl) {
-      let logoBase64 = logoUrl;
-      // If it's not already base64, try to fetch it
-      if (!logoUrl.startsWith("data:")) {
-        const fetchedLogo = await imageToBase64(logoUrl);
-        if (fetchedLogo) {
-          logoBase64 = fetchedLogo;
-        } else {
-          console.error("Failed to fetch logo from URL:", logoUrl);
-          logoBase64 = "";
+      try {
+        let logoBase64 = logoUrl;
+        let imageFormat = "PNG";
+        
+        // If it's not already base64, try to fetch it
+        if (!logoUrl.startsWith("data:")) {
+          const fetchedLogo = await imageToBase64(logoUrl);
+          if (fetchedLogo) {
+            logoBase64 = fetchedLogo;
+          } else {
+            console.error("Failed to fetch logo from URL:", logoUrl);
+            logoBase64 = "";
+          }
         }
-      }
-      if (logoBase64) {
-        try {
-          doc.addImage(logoBase64, "PNG", marginLeft, yPos, 40, 15);
-          yPos += 20;
-          console.log("Logo added successfully");
-        } catch (e) {
-          console.error("Error adding logo:", e);
+        
+        if (logoBase64 && logoBase64.startsWith("data:image/")) {
+          // Extract format from data URL
+          if (logoBase64.includes("data:image/jpeg") || logoBase64.includes("data:image/jpg")) {
+            imageFormat = "JPEG";
+          } else if (logoBase64.includes("data:image/png")) {
+            imageFormat = "PNG";
+          }
+          
+          // Extract only the base64 part for jsPDF
+          const base64Data = logoBase64.split(",")[1];
+          if (base64Data && base64Data.length > 100) {
+            doc.addImage(logoBase64, imageFormat, marginLeft, yPos, 40, 15);
+            yPos += 20;
+            console.log("Logo added successfully, format:", imageFormat);
+          } else {
+            console.error("Logo base64 data too short or invalid");
+          }
         }
+      } catch (e) {
+        console.error("Error adding logo:", e);
+        // Continue without logo
       }
     }
 
