@@ -16,7 +16,10 @@ export function useEtapas(obraId: string | undefined) {
         .from("etapas")
         .select(`
           *,
-          responsavel:profiles!etapas_responsavel_id_fkey(id, full_name, avatar_url)
+          responsavel:profiles!etapas_responsavel_id_fkey(id, full_name, avatar_url),
+          etapa_responsaveis(
+            responsavel:profiles!etapa_responsaveis_responsavel_id_fkey(id, full_name, avatar_url)
+          )
         `)
         .eq("obra_id", obraId)
         .order("ordem", { ascending: true });
@@ -24,6 +27,42 @@ export function useEtapas(obraId: string | undefined) {
       return data;
     },
     enabled: !!obraId,
+  });
+}
+
+export function useManageEtapaResponsaveis() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ etapaId, responsavelIds, obraId }: { etapaId: string; responsavelIds: string[]; obraId: string }) => {
+      // Remove all existing responsáveis
+      const { error: deleteError } = await supabase
+        .from("etapa_responsaveis")
+        .delete()
+        .eq("etapa_id", etapaId);
+      
+      if (deleteError) throw deleteError;
+
+      // Add new responsáveis
+      if (responsavelIds.length > 0) {
+        const { error: insertError } = await supabase
+          .from("etapa_responsaveis")
+          .insert(
+            responsavelIds.map((responsavel_id) => ({
+              etapa_id: etapaId,
+              responsavel_id,
+            }))
+          );
+        
+        if (insertError) throw insertError;
+      }
+
+      return { obraId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["etapas", data.obraId] });
+      queryClient.invalidateQueries({ queryKey: ["obras", data.obraId] });
+    },
   });
 }
 

@@ -8,6 +8,12 @@ import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
 
+interface Responsavel {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+}
+
 export interface EtapaWithResponsavel {
   id: string;
   titulo: string;
@@ -18,11 +24,10 @@ export interface EtapaWithResponsavel {
   observacoes: string | null;
   obra_id?: string;
   responsavel_id?: string | null;
-  responsavel: {
-    id: string;
-    full_name: string;
-    avatar_url: string | null;
-  } | null;
+  responsavel: Responsavel | null;
+  etapa_responsaveis?: Array<{
+    responsavel: Responsavel;
+  }>;
 }
 
 interface EtapaStepperProps {
@@ -58,6 +63,27 @@ export function EtapaStepper({ etapas, onEtapaClick, onEditClick, showEditButton
       .slice(0, 2);
   };
 
+  // Get all responsáveis (from new table + legacy field)
+  const getResponsaveis = (etapa: EtapaWithResponsavel): Responsavel[] => {
+    const responsaveis: Responsavel[] = [];
+    
+    // Add from new junction table
+    if (etapa.etapa_responsaveis && etapa.etapa_responsaveis.length > 0) {
+      etapa.etapa_responsaveis.forEach((er) => {
+        if (er.responsavel) {
+          responsaveis.push(er.responsavel);
+        }
+      });
+    }
+    
+    // Fallback to legacy single responsavel if no new responsáveis
+    if (responsaveis.length === 0 && etapa.responsavel) {
+      responsaveis.push(etapa.responsavel);
+    }
+    
+    return responsaveis;
+  };
+
   if (etapas.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -70,6 +96,7 @@ export function EtapaStepper({ etapas, onEtapaClick, onEditClick, showEditButton
     <div className="relative">
       {etapas.map((etapa, index) => {
         const isLast = index === etapas.length - 1;
+        const responsaveis = getResponsaveis(etapa);
         
         return (
           <div key={etapa.id} className="relative flex gap-4">
@@ -126,17 +153,28 @@ export function EtapaStepper({ etapas, onEtapaClick, onEditClick, showEditButton
                       Prazo: {format(new Date(etapa.prazo), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   )}
-                  {etapa.responsavel && (
+                  {responsaveis.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        {etapa.responsavel.full_name}
+                        {responsaveis.length === 1 
+                          ? responsaveis[0].full_name 
+                          : `${responsaveis.length} responsáveis`}
                       </span>
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={etapa.responsavel.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs">
-                          {getInitials(etapa.responsavel.full_name)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="flex -space-x-2">
+                        {responsaveis.slice(0, 3).map((resp) => (
+                          <Avatar key={resp.id} className="h-6 w-6 border-2 border-background">
+                            <AvatarImage src={resp.avatar_url || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {getInitials(resp.full_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {responsaveis.length > 3 && (
+                          <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
+                            +{responsaveis.length - 3}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

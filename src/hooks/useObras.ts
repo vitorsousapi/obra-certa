@@ -49,7 +49,10 @@ export function useObra(id: string | undefined) {
           created_by_profile:profiles!obras_created_by_fkey(full_name),
           etapas(
             *,
-            responsavel:profiles!etapas_responsavel_id_fkey(id, full_name, avatar_url)
+            responsavel:profiles!etapas_responsavel_id_fkey(id, full_name, avatar_url),
+            etapa_responsaveis(
+              responsavel:profiles!etapa_responsaveis_responsavel_id_fkey(id, full_name, avatar_url)
+            )
           )
         `)
         .eq("id", id)
