@@ -65,6 +65,42 @@ export type Database = {
           },
         ]
       }
+      etapa_responsaveis: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          responsavel_id: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          responsavel_id: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_responsaveis_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapa_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etapas: {
         Row: {
           created_at: string
