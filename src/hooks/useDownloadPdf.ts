@@ -2,16 +2,39 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Convert image to base64
+// Convert image to base64 with proper validation
 async function imageToBase64(url: string): Promise<string | null> {
   try {
     const response = await fetch(url);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error("Failed to fetch image:", response.status);
+      return null;
+    }
     const blob = await response.blob();
+    
+    // Validate blob
+    if (blob.size === 0) {
+      console.error("Empty blob received");
+      return null;
+    }
+    
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Validate that we got a proper data URL
+        if (result && result.startsWith("data:image/")) {
+          console.log("Successfully converted image, size:", result.length);
+          resolve(result);
+        } else {
+          console.error("Invalid data URL format");
+          resolve(null);
+        }
+      };
+      reader.onerror = () => {
+        console.error("FileReader error:", reader.error);
+        reject(reader.error);
+      };
       reader.readAsDataURL(blob);
     });
   } catch (error) {
