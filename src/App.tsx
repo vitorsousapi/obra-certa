@@ -13,6 +13,7 @@ import Obras from "./pages/admin/Obras";
 import ObraForm from "./pages/admin/ObraForm";
 import ObraDetalhes from "./pages/admin/ObraDetalhes";
 import Colaboradores from "./pages/admin/Colaboradores";
+import Aprovacoes from "./pages/admin/Aprovacoes";
 import ColaboradorAtividades from "./pages/colaborador/Atividades";
 import NotFound from "./pages/NotFound";
 
@@ -41,7 +42,7 @@ function AppRoutes() {
       <Route path="/obras/:id" element={<ProtectedRoute requiredRole="admin"><ObraDetalhes /></ProtectedRoute>} />
       <Route path="/obras/:id/editar" element={<ProtectedRoute requiredRole="admin"><ObraForm /></ProtectedRoute>} />
       <Route path="/colaboradores" element={<ProtectedRoute requiredRole="admin"><Colaboradores /></ProtectedRoute>} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="/aprovacoes" element={<ProtectedRoute requiredRole="admin"><Aprovacoes /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
