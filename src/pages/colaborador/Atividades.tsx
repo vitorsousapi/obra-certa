@@ -50,6 +50,19 @@ function useMinhasEtapas() {
     queryFn: async () => {
       if (!profile?.id) return [];
       
+      // First get etapa IDs where this user is a responsible via the junction table
+      const { data: responsavelEntries, error: responsavelError } = await supabase
+        .from("etapa_responsaveis")
+        .select("etapa_id")
+        .eq("responsavel_id", profile.id);
+
+      if (responsavelError) throw responsavelError;
+      
+      const etapaIds = responsavelEntries?.map((e) => e.etapa_id) ?? [];
+      
+      if (etapaIds.length === 0) return [];
+      
+      // Then fetch the full etapa data for those IDs
       const { data, error } = await supabase
         .from("etapas")
         .select(`
@@ -62,7 +75,7 @@ function useMinhasEtapas() {
           ordem,
           obra:obras(id, nome, cliente_nome)
         `)
-        .eq("responsavel_id", profile.id)
+        .in("id", etapaIds)
         .order("prazo", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
