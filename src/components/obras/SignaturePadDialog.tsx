@@ -58,7 +58,9 @@ export function SignaturePadDialog({
     }
 
     try {
-      const dataUrl = sigCanvasRef.current.getTrimmedCanvas().toDataURL("image/png");
+      // Use getCanvas() instead of getTrimmedCanvas() due to library bug
+      const canvas = sigCanvasRef.current.getCanvas();
+      const dataUrl = canvas.toDataURL("image/png");
       await onConfirm(dataUrl, nome.trim());
     } catch (error) {
       console.error("Error confirming signature:", error);
