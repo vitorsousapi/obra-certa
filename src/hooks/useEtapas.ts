@@ -130,6 +130,7 @@ export function useUpdateEtapa() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["etapas", data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ["obras", data.obra_id] });
+      queryClient.invalidateQueries({ queryKey: ["obras"] }); // Refresh dashboard list and stats
       toast({
         title: "Etapa atualizada",
         description: "A etapa foi atualizada com sucesso.",
