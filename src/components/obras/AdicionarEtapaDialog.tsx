@@ -62,25 +62,30 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
   };
 
   const onSubmit = async (data: EtapaFormData) => {
-    const newEtapa = await createEtapa.mutateAsync({
-      obra_id: obraId,
-      titulo: data.titulo,
-      descricao: data.descricao || null,
-      prazo: data.prazo || null,
-    });
-
-    // Add responsáveis to the new etapa
-    if (selectedResponsaveis.length > 0) {
-      await manageResponsaveis.mutateAsync({
-        etapaId: newEtapa.id,
-        responsavelIds: selectedResponsaveis,
-        obraId,
+    try {
+      const newEtapa = await createEtapa.mutateAsync({
+        obra_id: obraId,
+        titulo: data.titulo,
+        descricao: data.descricao || null,
+        prazo: data.prazo || null,
       });
-    }
 
-    form.reset();
-    setSelectedResponsaveis([]);
-    setOpen(false);
+      // Add responsáveis to the new etapa
+      if (selectedResponsaveis.length > 0 && newEtapa?.id) {
+        await manageResponsaveis.mutateAsync({
+          etapaId: newEtapa.id,
+          responsavelIds: selectedResponsaveis,
+          obraId,
+        });
+      }
+
+      form.reset();
+      setSelectedResponsaveis([]);
+      setOpen(false);
+    } catch (error) {
+      // Error is already handled by the mutation's onError
+      console.error("Erro ao criar etapa:", error);
+    }
   };
 
   const colaboradoresList = colaboradores?.filter((c) => c.role === "colaborador") || [];

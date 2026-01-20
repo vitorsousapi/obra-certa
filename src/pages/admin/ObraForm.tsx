@@ -76,19 +76,26 @@ export default function ObraForm() {
   }, [obra, form]);
 
   const onSubmit = async (data: ObraFormData) => {
-    if (isEditing && id) {
-      await updateObra.mutateAsync({ id, ...data });
-      navigate(`/obras/${id}`);
-    } else {
-      const newObra = await createObra.mutateAsync({
-        nome: data.nome,
-        cliente_nome: data.cliente_nome,
-        cliente_email: data.cliente_email,
-        data_inicio: data.data_inicio,
-        data_prevista: data.data_prevista,
-        status: data.status,
-      });
-      navigate(`/obras/${newObra.id}`);
+    try {
+      if (isEditing && id) {
+        await updateObra.mutateAsync({ id, ...data });
+        navigate(`/obras/${id}`);
+      } else {
+        const newObra = await createObra.mutateAsync({
+          nome: data.nome,
+          cliente_nome: data.cliente_nome,
+          cliente_email: data.cliente_email,
+          data_inicio: data.data_inicio,
+          data_prevista: data.data_prevista,
+          status: data.status,
+        });
+        if (newObra?.id) {
+          navigate(`/obras/${newObra.id}`);
+        }
+      }
+    } catch (error) {
+      // Error is already handled by the mutation's onError
+      console.error("Erro ao salvar obra:", error);
     }
   };
 
