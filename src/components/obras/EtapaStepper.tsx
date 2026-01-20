@@ -1,5 +1,6 @@
-import { Check, Clock, Send, X, Circle } from "lucide-react";
+import { Check, Clock, Send, X, Circle, Pencil } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { EtapaStatusBadge } from "./EtapaStatusBadge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -7,7 +8,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
 
-interface EtapaWithResponsavel {
+export interface EtapaWithResponsavel {
   id: string;
   titulo: string;
   descricao: string | null;
@@ -15,6 +16,8 @@ interface EtapaWithResponsavel {
   prazo: string | null;
   status: EtapaStatus;
   observacoes: string | null;
+  obra_id?: string;
+  responsavel_id?: string | null;
   responsavel: {
     id: string;
     full_name: string;
@@ -25,6 +28,8 @@ interface EtapaWithResponsavel {
 interface EtapaStepperProps {
   etapas: EtapaWithResponsavel[];
   onEtapaClick?: (etapa: EtapaWithResponsavel) => void;
+  onEditClick?: (etapa: EtapaWithResponsavel) => void;
+  showEditButton?: boolean;
 }
 
 const statusIcons: Record<EtapaStatus, React.ReactNode> = {
@@ -43,7 +48,7 @@ const statusLineColors: Record<EtapaStatus, string> = {
   rejeitada: "bg-red-300",
 };
 
-export function EtapaStepper({ etapas, onEtapaClick }: EtapaStepperProps) {
+export function EtapaStepper({ etapas, onEtapaClick, onEditClick, showEditButton = false }: EtapaStepperProps) {
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -102,6 +107,20 @@ export function EtapaStepper({ etapas, onEtapaClick }: EtapaStepperProps) {
                 </div>
 
                 <div className="flex flex-col items-end gap-1 shrink-0">
+                  {showEditButton && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditClick?.(etapa);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1" />
+                      Editar
+                    </Button>
+                  )}
                   {etapa.prazo && (
                     <span className="text-xs text-muted-foreground">
                       Prazo: {format(new Date(etapa.prazo), "dd/MM/yyyy", { locale: ptBR })}

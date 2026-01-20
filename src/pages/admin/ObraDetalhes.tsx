@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,9 @@ import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
-import { EtapaStepper } from "@/components/obras/EtapaStepper";
+import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
 import { AdicionarEtapaDialog } from "@/components/obras/AdicionarEtapaDialog";
+import { EditarEtapaDialog } from "@/components/obras/EditarEtapaDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +21,13 @@ export default function ObraDetalhes() {
   const navigate = useNavigate();
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
+  const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
+    setEditingEtapa(etapa);
+    setEditDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -158,9 +167,20 @@ export default function ObraDetalhes() {
           </CardHeader>
           <Separator />
           <CardContent className="pt-6">
-            <EtapaStepper etapas={etapas} />
+            <EtapaStepper 
+              etapas={etapas} 
+              showEditButton={true}
+              onEditClick={handleEditEtapa}
+            />
           </CardContent>
         </Card>
+
+        <EditarEtapaDialog
+          etapa={editingEtapa}
+          obraId={obra.id}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+        />
       </div>
     </AdminLayout>
   );
