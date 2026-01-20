@@ -2,10 +2,29 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Logo URL - uses the deployed app URL
-const getLogoUrl = () => {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/images/logo-tavitrum.png`;
+// Convert image to base64
+async function imageToBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error converting image to base64:", error);
+    return null;
+  }
+}
+
+// Get logo as base64
+const getLogoBase64 = async () => {
+  const logoUrl = `${window.location.origin}/images/logo-tavitrum.png`;
+  const base64 = await imageToBase64(logoUrl);
+  return base64;
 };
 
 interface DownloadPdfParams {
@@ -18,8 +37,11 @@ export function useDownloadPdf() {
 
   return useMutation({
     mutationFn: async ({ obraId, logoUrl }: DownloadPdfParams) => {
+      // Get logo as base64 if not provided
+      const logoBase64 = logoUrl || await getLogoBase64();
+      
       const { data, error } = await supabase.functions.invoke("generate-pdf", {
-        body: { obraId, logoUrl: logoUrl || getLogoUrl() },
+        body: { obraId, logoUrl: logoBase64 },
       });
 
       if (error) {

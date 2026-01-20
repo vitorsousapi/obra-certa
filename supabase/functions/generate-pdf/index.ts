@@ -16,17 +16,27 @@ interface GeneratePdfRequest {
 // Helper to convert image URL to base64
 async function imageToBase64(url: string): Promise<string | null> {
   try {
+    console.log("Fetching image from URL:", url);
     const response = await fetch(url);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error("Failed to fetch image, status:", response.status);
+      return null;
+    }
     const blob = await response.blob();
     const buffer = await blob.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
     const mimeType = blob.type || "image/png";
+    console.log("Successfully converted image to base64, type:", mimeType);
     return `data:${mimeType};base64,${base64}`;
   } catch (error) {
     console.error("Error converting image to base64:", error);
     return null;
   }
+}
+
+// Helper to get public URL from storage path
+function getPublicStorageUrl(supabaseUrl: string, storagePath: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/${storagePath}`;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -81,16 +91,23 @@ const handler = async (req: Request): Promise<Response> => {
     if (etapaIds.length > 0) {
       const { data: anexos } = await supabase
         .from("etapa_anexos")
-        .select("id, etapa_id, nome, tipo, url")
+        .select("id, etapa_id, nome, tipo, url, storage_path")
         .in("etapa_id", etapaIds)
         .order("created_at", { ascending: true });
+
+      console.log("Found anexos:", anexos?.length || 0);
 
       if (anexos) {
         for (const anexo of anexos) {
           if (!anexosByEtapa[anexo.etapa_id]) {
             anexosByEtapa[anexo.etapa_id] = [];
           }
-          anexosByEtapa[anexo.etapa_id].push(anexo);
+          // Generate fresh public URL from storage path
+          const publicUrl = getPublicStorageUrl(supabaseUrl, anexo.storage_path);
+          anexosByEtapa[anexo.etapa_id].push({
+            ...anexo,
+            url: publicUrl
+          });
         }
       }
     }
@@ -135,13 +152,24 @@ const handler = async (req: Request): Promise<Response> => {
       return false;
     };
 
-    // Add logo if provided
+    // Add logo if provided (can be base64 or URL)
     if (logoUrl) {
-      const logoBase64 = await imageToBase64(logoUrl);
+      let logoBase64 = logoUrl;
+      // If it's not already base64, try to fetch it
+      if (!logoUrl.startsWith("data:")) {
+        const fetchedLogo = await imageToBase64(logoUrl);
+        if (fetchedLogo) {
+          logoBase64 = fetchedLogo;
+        } else {
+          console.error("Failed to fetch logo from URL:", logoUrl);
+          logoBase64 = "";
+        }
+      }
       if (logoBase64) {
         try {
           doc.addImage(logoBase64, "PNG", marginLeft, yPos, 40, 15);
           yPos += 20;
+          console.log("Logo added successfully");
         } catch (e) {
           console.error("Error adding logo:", e);
         }
