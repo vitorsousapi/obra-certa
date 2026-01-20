@@ -8,12 +8,12 @@ import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, Unlock, CheckCi
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
 import { useReleaseSignature } from "@/hooks/useReleaseSignature";
-import { useDownloadPdf } from "@/hooks/useDownloadPdf";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
 import { AdicionarEtapaDialog } from "@/components/obras/AdicionarEtapaDialog";
 import { EditarEtapaDialog } from "@/components/obras/EditarEtapaDialog";
+import { PdfPreviewDialog } from "@/components/obras/PdfPreviewDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,9 +24,9 @@ export default function ObraDetalhes() {
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
   const { mutate: releaseSignature, isPending: isReleasing } = useReleaseSignature();
-  const { mutate: downloadPdf, isPending: isDownloadingPdf } = useDownloadPdf();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
     setEditingEtapa(etapa);
@@ -99,15 +99,10 @@ export default function ObraDetalhes() {
           <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline"
-              onClick={() => downloadPdf({ obraId: obra.id })}
-              disabled={isDownloadingPdf}
+              onClick={() => setPdfPreviewOpen(true)}
             >
-              {isDownloadingPdf ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <FileDown className="h-4 w-4 mr-2" />
-              )}
-              Baixar PDF
+              <FileDown className="h-4 w-4 mr-2" />
+              Visualizar PDF
             </Button>
             <Button 
               variant="outline"
@@ -264,6 +259,13 @@ export default function ObraDetalhes() {
           obraId={obra.id}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
+        />
+
+        <PdfPreviewDialog
+          open={pdfPreviewOpen}
+          onOpenChange={setPdfPreviewOpen}
+          obraId={obra.id}
+          obraNome={obra.nome}
         />
       </div>
     </AdminLayout>
