@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import {
   Dialog,
@@ -30,17 +30,26 @@ export function SignaturePadDialog({
   onConfirm,
   isPending = false,
 }: SignaturePadDialogProps) {
-  const sigCanvasRef = useRef<SignatureCanvas>(null);
+  const sigCanvasRef = useRef<SignatureCanvas | null>(null);
   const [nome, setNome] = useState(clienteName);
   const [isEmpty, setIsEmpty] = useState(true);
 
+  // Reset nome when clienteName changes
+  useEffect(() => {
+    setNome(clienteName);
+  }, [clienteName]);
+
   const handleClear = () => {
-    sigCanvasRef.current?.clear();
+    if (sigCanvasRef.current) {
+      sigCanvasRef.current.clear();
+    }
     setIsEmpty(true);
   };
 
   const handleEnd = () => {
-    setIsEmpty(sigCanvasRef.current?.isEmpty() ?? true);
+    if (sigCanvasRef.current) {
+      setIsEmpty(sigCanvasRef.current.isEmpty());
+    }
   };
 
   const handleConfirm = async () => {
@@ -48,8 +57,12 @@ export function SignaturePadDialog({
       return;
     }
 
-    const dataUrl = sigCanvasRef.current.getTrimmedCanvas().toDataURL("image/png");
-    await onConfirm(dataUrl, nome.trim());
+    try {
+      const dataUrl = sigCanvasRef.current.getTrimmedCanvas().toDataURL("image/png");
+      await onConfirm(dataUrl, nome.trim());
+    } catch (error) {
+      console.error("Error confirming signature:", error);
+    }
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -102,7 +115,7 @@ export function SignaturePadDialog({
             </div>
             <div className="border rounded-md bg-white overflow-hidden touch-none">
               <SignatureCanvas
-                ref={sigCanvasRef}
+                ref={(ref) => { sigCanvasRef.current = ref; }}
                 penColor="black"
                 canvasProps={{
                   className: "w-full h-48",
@@ -117,7 +130,7 @@ export function SignaturePadDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             type="button"
             variant="outline"

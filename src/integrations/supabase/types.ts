@@ -163,6 +163,7 @@ export type Database = {
           assinatura_data: string | null
           assinatura_imagem_url: string | null
           assinatura_ip: string | null
+          assinatura_liberada: boolean | null
           assinatura_nome: string | null
           assinatura_token: string | null
           cliente_email: string
@@ -181,6 +182,7 @@ export type Database = {
           assinatura_data?: string | null
           assinatura_imagem_url?: string | null
           assinatura_ip?: string | null
+          assinatura_liberada?: boolean | null
           assinatura_nome?: string | null
           assinatura_token?: string | null
           cliente_email: string
@@ -199,6 +201,7 @@ export type Database = {
           assinatura_data?: string | null
           assinatura_imagem_url?: string | null
           assinatura_ip?: string | null
+          assinatura_liberada?: boolean | null
           assinatura_nome?: string | null
           assinatura_token?: string | null
           cliente_email?: string
