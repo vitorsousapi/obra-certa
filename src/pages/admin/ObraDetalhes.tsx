@@ -4,10 +4,11 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, Unlock, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, Unlock, CheckCircle2, Clock, FileDown } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
 import { useReleaseSignature } from "@/hooks/useReleaseSignature";
+import { useDownloadPdf } from "@/hooks/useDownloadPdf";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
@@ -23,6 +24,7 @@ export default function ObraDetalhes() {
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
   const { mutate: releaseSignature, isPending: isReleasing } = useReleaseSignature();
+  const { mutate: downloadPdf, isPending: isDownloadingPdf } = useDownloadPdf();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -95,6 +97,18 @@ export default function ObraDetalhes() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <Button 
+              variant="outline"
+              onClick={() => downloadPdf(obra.id)}
+              disabled={isDownloadingPdf}
+            >
+              {isDownloadingPdf ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              Baixar PDF
+            </Button>
             <Button 
               variant="outline"
               onClick={() => sendReport(obra.id)}
