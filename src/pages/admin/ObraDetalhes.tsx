@@ -99,7 +99,7 @@ export default function ObraDetalhes() {
           <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline"
-              onClick={() => downloadPdf(obra.id)}
+              onClick={() => downloadPdf({ obraId: obra.id })}
               disabled={isDownloadingPdf}
             >
               {isDownloadingPdf ? (

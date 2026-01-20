@@ -2,13 +2,21 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Logo URL - can be updated to use a dynamic URL from settings
+const COMPANY_LOGO_URL = "";
+
+interface DownloadPdfParams {
+  obraId: string;
+  logoUrl?: string;
+}
+
 export function useDownloadPdf() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (obraId: string) => {
+    mutationFn: async ({ obraId, logoUrl }: DownloadPdfParams) => {
       const { data, error } = await supabase.functions.invoke("generate-pdf", {
-        body: { obraId },
+        body: { obraId, logoUrl: logoUrl || COMPANY_LOGO_URL || undefined },
       });
 
       if (error) {
