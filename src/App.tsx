@@ -17,7 +17,7 @@ import Colaboradores from "./pages/admin/Colaboradores";
 import Aprovacoes from "./pages/admin/Aprovacoes";
 import Configuracoes from "./pages/admin/Configuracoes";
 import ColaboradorAtividades from "./pages/colaborador/Atividades";
-import AssinarObra from "./pages/AssinarObra";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +32,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="/assinar/:token" element={<AssinarObra />} />
+      
       <Route
         path="/"
         element={
