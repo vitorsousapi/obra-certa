@@ -6,6 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 interface Anexo {
   id: string;
@@ -38,6 +42,7 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<Anexo | null>(null);
 
   const { data: anexos, isLoading } = useQuery({
     queryKey: ["etapa-anexos", etapaId],
@@ -150,6 +155,15 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
     }
   };
 
+  const handleAnexoClick = (anexo: Anexo, e: React.MouseEvent) => {
+    // If it's an image, open in popup
+    if (anexo.tipo.startsWith("image/")) {
+      e.preventDefault();
+      setPreviewImage(anexo);
+    }
+    // Otherwise, let the default link behavior open in new tab
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -199,7 +213,8 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
                 href={anexo.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 flex-1 min-w-0 hover:underline"
+                onClick={(e) => handleAnexoClick(anexo, e)}
+                className="flex items-center gap-2 flex-1 min-w-0 hover:underline cursor-pointer"
               >
                 {getFileIcon(anexo.tipo)}
                 <span className="text-sm truncate">{anexo.nome}</span>
@@ -222,6 +237,26 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
           ))}
         </div>
       )}
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl w-full p-2">
+          {previewImage && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-2 pt-2">
+                <span className="text-sm font-medium truncate">{previewImage.nome}</span>
+              </div>
+              <div className="flex items-center justify-center bg-muted rounded-md overflow-hidden">
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.nome}
+                  className="max-h-[80vh] max-w-full object-contain"
+                />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
