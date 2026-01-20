@@ -47,7 +47,7 @@ export function ColaboradorNav() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <ClipboardList className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold">TaviList</span>
+          <span className="text-lg font-semibold">TavList</span>
         </div>
 
         {/* Navigation */}
