@@ -160,6 +160,10 @@ export type Database = {
       }
       obras: {
         Row: {
+          assinatura_data: string | null
+          assinatura_ip: string | null
+          assinatura_nome: string | null
+          assinatura_token: string | null
           cliente_email: string
           cliente_nome: string
           created_at: string
@@ -173,6 +177,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_data?: string | null
+          assinatura_ip?: string | null
+          assinatura_nome?: string | null
+          assinatura_token?: string | null
           cliente_email: string
           cliente_nome: string
           created_at?: string
@@ -186,6 +194,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_data?: string | null
+          assinatura_ip?: string | null
+          assinatura_nome?: string | null
+          assinatura_token?: string | null
           cliente_email?: string
           cliente_nome?: string
           created_at?: string

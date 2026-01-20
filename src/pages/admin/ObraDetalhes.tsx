@@ -4,9 +4,10 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, FileSignature, CheckCircle2 } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
+import { useRequestSignature } from "@/hooks/useRequestSignature";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
@@ -21,6 +22,7 @@ export default function ObraDetalhes() {
   const navigate = useNavigate();
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
+  const { mutate: requestSignature, isPending: isRequestingSignature } = useRequestSignature();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -64,6 +66,9 @@ export default function ObraDetalhes() {
   }
 
   const etapas = (obra as any).etapas || [];
+  const obraData = obra as any;
+  const isObraConcluida = obra.status === "concluida";
+  const isAssinada = !!obraData.assinatura_data;
 
   return (
     <AdminLayout title={obra.nome}>
@@ -88,7 +93,7 @@ export default function ObraDetalhes() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline"
               onClick={() => sendReport(obra.id)}
@@ -101,6 +106,20 @@ export default function ObraDetalhes() {
               )}
               Enviar Relatório
             </Button>
+            {isObraConcluida && !isAssinada && (
+              <Button 
+                variant="default"
+                onClick={() => requestSignature(obra.id)}
+                disabled={isRequestingSignature}
+              >
+                {isRequestingSignature ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileSignature className="h-4 w-4 mr-2" />
+                )}
+                Solicitar Assinatura
+              </Button>
+            )}
             <Link to={`/obras/${obra.id}/editar`}>
               <Button variant="outline">
                 <Pencil className="h-4 w-4 mr-2" />
@@ -109,6 +128,26 @@ export default function ObraDetalhes() {
             </Link>
           </div>
         </div>
+
+        {/* Signature Status */}
+        {isAssinada && (
+          <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-800 dark:text-green-200">
+                    Recebimento confirmado pelo cliente
+                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    Assinado por <strong>{obraData.assinatura_nome}</strong> em{" "}
+                    {format(new Date(obraData.assinatura_data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
