@@ -4,16 +4,15 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, FileSignature, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, Unlock, CheckCircle2, Clock } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
-import { useSignObra } from "@/hooks/useSignObra";
+import { useReleaseSignature } from "@/hooks/useReleaseSignature";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
 import { AdicionarEtapaDialog } from "@/components/obras/AdicionarEtapaDialog";
 import { EditarEtapaDialog } from "@/components/obras/EditarEtapaDialog";
-import { SignaturePadDialog } from "@/components/obras/SignaturePadDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,24 +22,13 @@ export default function ObraDetalhes() {
   const navigate = useNavigate();
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
-  const { mutateAsync: signObra, isPending: isSigning } = useSignObra();
+  const { mutate: releaseSignature, isPending: isReleasing } = useReleaseSignature();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
 
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
     setEditingEtapa(etapa);
     setEditDialogOpen(true);
-  };
-
-  const handleSignature = async (signatureDataUrl: string, nome: string) => {
-    if (!obra) return;
-    await signObra({
-      obraId: obra.id,
-      signatureDataUrl,
-      nome,
-    });
-    setSignatureDialogOpen(false);
   };
 
   if (isLoading) {
@@ -81,6 +69,7 @@ export default function ObraDetalhes() {
   const obraData = obra as any;
   const isObraConcluida = obra.status === "concluida";
   const isAssinada = !!obraData.assinatura_data;
+  const isAssinaturaLiberada = !!obraData.assinatura_liberada;
 
   return (
     <AdminLayout title={obra.nome}>
@@ -118,13 +107,18 @@ export default function ObraDetalhes() {
               )}
               Enviar Relatório
             </Button>
-            {isObraConcluida && !isAssinada && (
+            {isObraConcluida && !isAssinada && !isAssinaturaLiberada && (
               <Button 
                 variant="default"
-                onClick={() => setSignatureDialogOpen(true)}
+                onClick={() => releaseSignature(obra.id)}
+                disabled={isReleasing}
               >
-                <FileSignature className="h-4 w-4 mr-2" />
-                Solicitar Assinatura
+                {isReleasing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Unlock className="h-4 w-4 mr-2" />
+                )}
+                Liberar para Assinatura
               </Button>
             )}
             <Link to={`/obras/${obra.id}/editar`}>
@@ -135,6 +129,25 @@ export default function ObraDetalhes() {
             </Link>
           </div>
         </div>
+
+        {/* Signature Released Status */}
+        {isAssinaturaLiberada && !isAssinada && (
+          <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Clock className="h-6 w-6 text-yellow-600" />
+                <div>
+                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                    Aguardando assinatura do cliente
+                  </p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    O colaborador responsável pela última etapa pode agora solicitar a assinatura presencialmente.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Signature Status */}
         {isAssinada && (
@@ -237,15 +250,6 @@ export default function ObraDetalhes() {
           obraId={obra.id}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
-        />
-
-        <SignaturePadDialog
-          open={signatureDialogOpen}
-          onOpenChange={setSignatureDialogOpen}
-          obraName={obra.nome}
-          clienteName={obra.cliente_nome}
-          onConfirm={handleSignature}
-          isPending={isSigning}
         />
       </div>
     </AdminLayout>
