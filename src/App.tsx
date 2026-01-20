@@ -9,6 +9,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 // Pages
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/Dashboard";
+import Obras from "./pages/admin/Obras";
+import ObraForm from "./pages/admin/ObraForm";
+import ObraDetalhes from "./pages/admin/ObraDetalhes";
+import Colaboradores from "./pages/admin/Colaboradores";
 import ColaboradorAtividades from "./pages/colaborador/Atividades";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +36,11 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/obras" element={<ProtectedRoute requiredRole="admin"><Obras /></ProtectedRoute>} />
+      <Route path="/obras/nova" element={<ProtectedRoute requiredRole="admin"><ObraForm /></ProtectedRoute>} />
+      <Route path="/obras/:id" element={<ProtectedRoute requiredRole="admin"><ObraDetalhes /></ProtectedRoute>} />
+      <Route path="/obras/:id/editar" element={<ProtectedRoute requiredRole="admin"><ObraForm /></ProtectedRoute>} />
+      <Route path="/colaboradores" element={<ProtectedRoute requiredRole="admin"><Colaboradores /></ProtectedRoute>} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
