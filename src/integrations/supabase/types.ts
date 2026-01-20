@@ -161,6 +161,7 @@ export type Database = {
       obras: {
         Row: {
           assinatura_data: string | null
+          assinatura_imagem_url: string | null
           assinatura_ip: string | null
           assinatura_nome: string | null
           assinatura_token: string | null
@@ -178,6 +179,7 @@ export type Database = {
         }
         Insert: {
           assinatura_data?: string | null
+          assinatura_imagem_url?: string | null
           assinatura_ip?: string | null
           assinatura_nome?: string | null
           assinatura_token?: string | null
@@ -195,6 +197,7 @@ export type Database = {
         }
         Update: {
           assinatura_data?: string | null
+          assinatura_imagem_url?: string | null
           assinatura_ip?: string | null
           assinatura_nome?: string | null
           assinatura_token?: string | null

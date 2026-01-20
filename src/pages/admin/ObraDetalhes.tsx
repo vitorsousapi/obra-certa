@@ -7,12 +7,13 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, FileSignature, CheckCircle2 } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
-import { useRequestSignature } from "@/hooks/useRequestSignature";
+import { useSignObra } from "@/hooks/useSignObra";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
 import { AdicionarEtapaDialog } from "@/components/obras/AdicionarEtapaDialog";
 import { EditarEtapaDialog } from "@/components/obras/EditarEtapaDialog";
+import { SignaturePadDialog } from "@/components/obras/SignaturePadDialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,13 +23,24 @@ export default function ObraDetalhes() {
   const navigate = useNavigate();
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
-  const { mutate: requestSignature, isPending: isRequestingSignature } = useRequestSignature();
+  const { mutateAsync: signObra, isPending: isSigning } = useSignObra();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
 
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
     setEditingEtapa(etapa);
     setEditDialogOpen(true);
+  };
+
+  const handleSignature = async (signatureDataUrl: string, nome: string) => {
+    if (!obra) return;
+    await signObra({
+      obraId: obra.id,
+      signatureDataUrl,
+      nome,
+    });
+    setSignatureDialogOpen(false);
   };
 
   if (isLoading) {
@@ -109,14 +121,9 @@ export default function ObraDetalhes() {
             {isObraConcluida && !isAssinada && (
               <Button 
                 variant="default"
-                onClick={() => requestSignature(obra.id)}
-                disabled={isRequestingSignature}
+                onClick={() => setSignatureDialogOpen(true)}
               >
-                {isRequestingSignature ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FileSignature className="h-4 w-4 mr-2" />
-                )}
+                <FileSignature className="h-4 w-4 mr-2" />
                 Solicitar Assinatura
               </Button>
             )}
@@ -133,17 +140,28 @@ export default function ObraDetalhes() {
         {isAssinada && (
           <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-800 dark:text-green-200">
-                    Recebimento confirmado pelo cliente
-                  </p>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Assinado por <strong>{obraData.assinatura_nome}</strong> em{" "}
-                    {format(new Date(obraData.assinatura_data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-green-800 dark:text-green-200">
+                      Recebimento confirmado pelo cliente
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      Assinado por <strong>{obraData.assinatura_nome}</strong> em{" "}
+                      {format(new Date(obraData.assinatura_data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
                 </div>
+                {obraData.assinatura_imagem_url && (
+                  <div className="bg-white rounded-md p-2 border">
+                    <img
+                      src={obraData.assinatura_imagem_url}
+                      alt="Assinatura do cliente"
+                      className="h-16 max-w-[200px] object-contain"
+                    />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -219,6 +237,15 @@ export default function ObraDetalhes() {
           obraId={obra.id}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
+        />
+
+        <SignaturePadDialog
+          open={signatureDialogOpen}
+          onOpenChange={setSignatureDialogOpen}
+          obraName={obra.nome}
+          clienteName={obra.cliente_nome}
+          onConfirm={handleSignature}
+          isPending={isSigning}
         />
       </div>
     </AdminLayout>

@@ -1,49 +1,46 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface ObraForSigning {
-  id: string;
+interface SignObraParams {
+  obraId: string;
+  signatureDataUrl: string;
   nome: string;
-  cliente_nome: string;
-  assinatura_data: string | null;
-  etapas: { id: string; titulo: string; status: string }[];
-}
-
-export function useObraByToken(token: string | undefined) {
-  return useQuery({
-    queryKey: ["obra-token", token],
-    queryFn: async (): Promise<ObraForSigning | null> => {
-      if (!token) return null;
-
-      const { data, error } = await supabase
-        .from("obras")
-        .select(`
-          id,
-          nome,
-          cliente_nome,
-          assinatura_data,
-          etapas(id, titulo, status)
-        `)
-        .eq("assinatura_token", token)
-        .single();
-
-      if (error) {
-        console.error("Error fetching obra by token:", error);
-        return null;
-      }
-
-      return data as ObraForSigning;
-    },
-    enabled: !!token,
-  });
 }
 
 export function useSignObra() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ token, nome }: { token: string; nome: string }) => {
+    mutationFn: async ({ obraId, signatureDataUrl, nome }: SignObraParams) => {
+      // Convert base64 data URL to blob
+      const response = await fetch(signatureDataUrl);
+      const blob = await response.blob();
+
+      // Generate unique filename
+      const filename = `${obraId}_${Date.now()}.png`;
+
+      // Upload signature image to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("assinaturas")
+        .upload(filename, blob, {
+          contentType: "image/png",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error("Error uploading signature:", uploadError);
+        throw new Error("Erro ao salvar imagem da assinatura");
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("assinaturas")
+        .getPublicUrl(uploadData.path);
+
+      const signatureUrl = urlData.publicUrl;
+
       // Get client IP (best effort)
       let clientIp = "unknown";
       try {
@@ -54,21 +51,26 @@ export function useSignObra() {
         console.log("Could not fetch client IP");
       }
 
-      const { error } = await supabase
+      // Update obra with signature data
+      const { error: updateError } = await supabase
         .from("obras")
         .update({
           assinatura_data: new Date().toISOString(),
           assinatura_nome: nome,
           assinatura_ip: clientIp,
+          assinatura_imagem_url: signatureUrl,
         })
-        .eq("assinatura_token", token)
-        .is("assinatura_data", null);
+        .eq("id", obraId);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error("Error updating obra:", updateError);
+        throw new Error("Erro ao registrar assinatura");
+      }
 
-      return { success: true };
+      return { success: true, signatureUrl };
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["obra", variables.obraId] });
       toast({
         title: "Assinatura confirmada",
         description: "O recebimento da obra foi confirmado com sucesso.",

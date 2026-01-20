@@ -147,6 +147,19 @@ const handler = async (req: Request): Promise<Response> => {
               </table>
             ` : "<p style='color: #6b7280;'>Nenhuma etapa cadastrada.</p>"}
 
+            ${obra.assinatura_data && obra.assinatura_nome ? `
+              <div style="margin-top: 32px; padding: 24px; border: 2px solid #22c55e; border-radius: 8px; background-color: #f0fdf4;">
+                <h3 style="color: #166534; margin-top: 0;">Atestado de Recebimento</h3>
+                <p style="margin: 8px 0; color: #166534;"><strong>Assinado por:</strong> ${obra.assinatura_nome}</p>
+                <p style="margin: 8px 0; color: #166534;"><strong>Data:</strong> ${new Date(obra.assinatura_data).toLocaleDateString("pt-BR")} às ${new Date(obra.assinatura_data).toLocaleTimeString("pt-BR")}</p>
+                ${obra.assinatura_imagem_url ? `
+                  <div style="margin-top: 16px; padding: 12px; background-color: white; border-radius: 4px; display: inline-block;">
+                    <img src="${obra.assinatura_imagem_url}" alt="Assinatura do cliente" style="max-width: 300px; max-height: 100px;" />
+                  </div>
+                ` : ""}
+              </div>
+            ` : ""}
+
             <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 12px;">
                 Este relatório foi gerado automaticamente pelo TaviList em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}.
