@@ -16,7 +16,8 @@ export function useObras(filters?: { status?: ObraStatus; search?: string }) {
         .from("obras")
         .select(`
           *,
-          created_by_profile:profiles!obras_created_by_fkey(full_name)
+          created_by_profile:profiles!obras_created_by_fkey(full_name),
+          etapas(id, status)
         `)
         .order("created_at", { ascending: false });
 

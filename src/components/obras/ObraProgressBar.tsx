@@ -1,10 +1,10 @@
 import { Progress } from "@/components/ui/progress";
 import type { Database } from "@/integrations/supabase/types";
 
-type Etapa = Database["public"]["Tables"]["etapas"]["Row"];
+type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
 
 interface ObraProgressBarProps {
-  etapas?: Etapa[];
+  etapas?: { id: string; status: EtapaStatus }[];
   showLabel?: boolean;
 }
 
