@@ -4,10 +4,9 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, Unlock, CheckCircle2, Clock, FileDown } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, CheckCircle2, FileDown, Phone } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
-import { useReleaseSignature } from "@/hooks/useReleaseSignature";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
 import { ObraProgressBar } from "@/components/obras/ObraProgressBar";
 import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/EtapaStepper";
@@ -15,6 +14,8 @@ import { AdicionarEtapaDialog } from "@/components/obras/AdicionarEtapaDialog";
 import { EditarEtapaDialog } from "@/components/obras/EditarEtapaDialog";
 import { PdfPreviewDialog } from "@/components/obras/PdfPreviewDialog";
 import { PdfEtapaSelector } from "@/components/obras/PdfEtapaSelector";
+import { EtapaWhatsAppActions } from "@/components/obras/EtapaWhatsAppActions";
+import { useEtapaAssinaturas } from "@/hooks/useEtapaAssinaturas";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +25,6 @@ export default function ObraDetalhes() {
   const navigate = useNavigate();
   const { data: obra, isLoading } = useObra(id);
   const { mutate: sendReport, isPending: isSendingReport } = useSendReport();
-  const { mutate: releaseSignature, isPending: isReleasing } = useReleaseSignature();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [pdfSelectorOpen, setPdfSelectorOpen] = useState(false);
@@ -82,9 +82,8 @@ export default function ObraDetalhes() {
 
   const etapas = (obra as any).etapas || [];
   const obraData = obra as any;
-  const isObraConcluida = obra.status === "concluida";
-  const isAssinada = !!obraData.assinatura_data;
-  const isAssinaturaLiberada = !!obraData.assinatura_liberada;
+  const etapaIds = etapas.map((e: any) => e.id);
+  const { data: etapaAssinaturas } = useEtapaAssinaturas(etapaIds);
 
   return (
     <AdminLayout title={obra.nome}>
@@ -129,20 +128,6 @@ export default function ObraDetalhes() {
               )}
               Enviar Relatório
             </Button>
-            {isObraConcluida && !isAssinada && !isAssinaturaLiberada && (
-              <Button 
-                variant="default"
-                onClick={() => releaseSignature(obra.id)}
-                disabled={isReleasing}
-              >
-                {isReleasing ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Unlock className="h-4 w-4 mr-2" />
-                )}
-                Liberar para Assinatura
-              </Button>
-            )}
             <Link to={`/obras/${obra.id}/editar`}>
               <Button variant="outline">
                 <Pencil className="h-4 w-4 mr-2" />
@@ -152,58 +137,8 @@ export default function ObraDetalhes() {
           </div>
         </div>
 
-        {/* Signature Released Status */}
-        {isAssinaturaLiberada && !isAssinada && (
-          <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Clock className="h-6 w-6 text-yellow-600" />
-                <div>
-                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                    Aguardando assinatura do cliente
-                  </p>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                    O colaborador responsável pela última etapa pode agora solicitar a assinatura presencialmente.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Signature Status */}
-        {isAssinada && (
-          <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex items-center gap-3 flex-1">
-                  <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">
-                      Recebimento confirmado pelo cliente
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      Assinado por <strong>{obraData.assinatura_nome}</strong> em{" "}
-                      {format(new Date(obraData.assinatura_data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  </div>
-                </div>
-                {obraData.assinatura_imagem_url && (
-                  <div className="bg-white rounded-md p-2 border">
-                    <img
-                      src={obraData.assinatura_imagem_url}
-                      alt="Assinatura do cliente"
-                      className="h-16 max-w-[200px] object-contain"
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -222,6 +157,17 @@ export default function ObraDetalhes() {
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium">{obra.cliente_email}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Phone className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Telefone</p>
+                  <p className="font-medium">{obraData.cliente_telefone || "Não informado"}</p>
                 </div>
               </div>
             </CardContent>

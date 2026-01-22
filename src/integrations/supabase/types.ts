@@ -65,6 +65,50 @@ export type Database = {
           },
         ]
       }
+      etapa_assinaturas: {
+        Row: {
+          assinatura_data: string | null
+          assinatura_imagem_url: string | null
+          assinatura_ip: string | null
+          assinatura_nome: string | null
+          created_at: string
+          etapa_id: string
+          id: string
+          link_enviado_em: string | null
+          token: string
+        }
+        Insert: {
+          assinatura_data?: string | null
+          assinatura_imagem_url?: string | null
+          assinatura_ip?: string | null
+          assinatura_nome?: string | null
+          created_at?: string
+          etapa_id: string
+          id?: string
+          link_enviado_em?: string | null
+          token?: string
+        }
+        Update: {
+          assinatura_data?: string | null
+          assinatura_imagem_url?: string | null
+          assinatura_ip?: string | null
+          assinatura_nome?: string | null
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          link_enviado_em?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_etapa"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etapa_responsaveis: {
         Row: {
           created_at: string
@@ -168,6 +212,7 @@ export type Database = {
           assinatura_token: string | null
           cliente_email: string
           cliente_nome: string
+          cliente_telefone: string | null
           created_at: string
           created_by: string
           data_conclusao: string | null
@@ -187,6 +232,7 @@ export type Database = {
           assinatura_token?: string | null
           cliente_email: string
           cliente_nome: string
+          cliente_telefone?: string | null
           created_at?: string
           created_by: string
           data_conclusao?: string | null
@@ -206,6 +252,7 @@ export type Database = {
           assinatura_token?: string | null
           cliente_email?: string
           cliente_nome?: string
+          cliente_telefone?: string | null
           created_at?: string
           created_by?: string
           data_conclusao?: string | null
@@ -274,6 +321,39 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_config: {
+        Row: {
+          api_key: string
+          api_url: string
+          connected: boolean | null
+          created_at: string
+          id: string
+          instance_name: string
+          qr_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          connected?: boolean | null
+          created_at?: string
+          id?: string
+          instance_name: string
+          qr_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          connected?: boolean | null
+          created_at?: string
+          id?: string
+          instance_name?: string
+          qr_code?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

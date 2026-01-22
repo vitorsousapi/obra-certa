@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Clock, Eye, Building2, Paperclip } from "lucide-react";
+import { Check, X, Clock, Eye, Building2, Paperclip, MessageCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
+import { EtapaWhatsAppActions } from "@/components/obras/EtapaWhatsAppActions";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
@@ -39,6 +40,7 @@ interface EtapaComDetalhes {
     id: string;
     nome: string;
     cliente_nome: string;
+    cliente_telefone: string | null;
   };
   responsavel: {
     id: string;
@@ -62,7 +64,7 @@ function usePendingEtapas() {
           status,
           ordem,
           updated_at,
-          obra:obras(id, nome, cliente_nome),
+          obra:obras(id, nome, cliente_nome, cliente_telefone),
           responsavel:profiles!etapas_responsavel_id_fkey(id, full_name, avatar_url)
         `)
         .eq("status", "submetida")
@@ -89,7 +91,7 @@ function useRecentApprovals() {
           status,
           ordem,
           updated_at,
-          obra:obras(id, nome, cliente_nome),
+          obra:obras(id, nome, cliente_nome, cliente_telefone),
           responsavel:profiles!etapas_responsavel_id_fkey(id, full_name, avatar_url)
         `)
         .in("status", ["aprovada", "rejeitada"])
@@ -208,12 +210,24 @@ function EtapaCard({
               )}
             </div>
             {!showActions && (
-              <Badge 
-                variant={etapa.status === "aprovada" ? "default" : "destructive"}
-                className={etapa.status === "aprovada" ? "bg-green-600" : ""}
-              >
-                {etapa.status === "aprovada" ? "Aprovada" : "Rejeitada"}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge 
+                  variant={etapa.status === "aprovada" ? "default" : "destructive"}
+                  className={etapa.status === "aprovada" ? "bg-green-600" : ""}
+                >
+                  {etapa.status === "aprovada" ? "Aprovada" : "Rejeitada"}
+                </Badge>
+                {etapa.status === "aprovada" && (
+                  <EtapaWhatsAppActions
+                    etapaId={etapa.id}
+                    etapaTitulo={etapa.titulo}
+                    clienteNome={etapa.obra.cliente_nome}
+                    clienteTelefone={etapa.obra.cliente_telefone}
+                    isAprovada={true}
+                    variant="dropdown"
+                  />
+                )}
+              </div>
             )}
           </div>
 

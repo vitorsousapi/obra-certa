@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Bell, Shield, Palette, Moon, Sun } from "lucide-react";
+import { WhatsAppConfigSection } from "@/components/whatsapp/WhatsAppConfigSection";
 import { useTheme } from "next-themes";
 import {
   Dialog,
@@ -324,6 +325,9 @@ export default function Configuracoes() {
             </div>
           </CardContent>
         </Card>
+
+        {/* WhatsApp Integration */}
+        <WhatsAppConfigSection />
       </div>
 
       {/* Change Password Dialog */}
