@@ -11,6 +11,7 @@ const corsHeaders = {
 interface GeneratePdfRequest {
   obraId: string;
   logoUrl?: string;
+  etapaIds?: string[];
 }
 
 // Helper to convert image URL to base64
@@ -45,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { obraId, logoUrl }: GeneratePdfRequest = await req.json();
+    const { obraId, logoUrl, etapaIds }: GeneratePdfRequest = await req.json();
 
     if (!obraId) {
       return new Response(
@@ -58,21 +59,10 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch obra details with etapas
+    // Fetch obra details
     const { data: obra, error: obraError } = await supabase
       .from("obras")
-      .select(`
-        *,
-        etapas(
-          id,
-          titulo,
-          status,
-          ordem,
-          prazo,
-          descricao,
-          responsavel:profiles!etapas_responsavel_id_fkey(full_name)
-        )
-      `)
+      .select("*")
       .eq("id", obraId)
       .single();
 
@@ -84,15 +74,45 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Fetch etapas - filter by etapaIds if provided
+    let etapasQuery = supabase
+      .from("etapas")
+      .select(`
+        id,
+        titulo,
+        status,
+        ordem,
+        prazo,
+        descricao,
+        responsavel:profiles!etapas_responsavel_id_fkey(full_name)
+      `)
+      .eq("obra_id", obraId)
+      .order("ordem", { ascending: true });
+
+    // Apply filter if specific etapa IDs are provided
+    if (etapaIds && etapaIds.length > 0) {
+      etapasQuery = etapasQuery.in("id", etapaIds);
+      console.log("Filtering etapas by IDs:", etapaIds);
+    }
+
+    const { data: etapasData, error: etapasError } = await etapasQuery;
+
+    if (etapasError) {
+      console.error("Error fetching etapas:", etapasError);
+    }
+
+    // Attach etapas to obra object for compatibility
+    (obra as any).etapas = etapasData || [];
+
     // Fetch anexos for all etapas
-    const etapaIds = obra.etapas?.map((e: any) => e.id) || [];
+    const anexoEtapaIds = (obra as any).etapas?.map((e: any) => e.id) || [];
     let anexosByEtapa: Record<string, any[]> = {};
     
-    if (etapaIds.length > 0) {
+    if (anexoEtapaIds.length > 0) {
       const { data: anexos } = await supabase
         .from("etapa_anexos")
         .select("id, etapa_id, nome, tipo, url, storage_path")
-        .in("etapa_id", etapaIds)
+        .in("etapa_id", anexoEtapaIds)
         .order("created_at", { ascending: true });
 
       console.log("Found anexos:", anexos?.length || 0);
@@ -418,7 +438,7 @@ const handler = async (req: Request): Promise<Response> => {
       doc.setFont("helvetica", "normal");
       doc.setTextColor(107, 114, 128);
       doc.text(
-        `Relatório gerado pelo TaviList em ${new Date().toLocaleDateString("pt-BR")} - Página ${i} de ${totalPages}`,
+        `Relatório gerado pelo TavList em ${new Date().toLocaleDateString("pt-BR")} - Página ${i} de ${totalPages}`,
         marginLeft,
         pageHeight - 10
       );
