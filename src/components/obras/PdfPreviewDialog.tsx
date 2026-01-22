@@ -57,6 +57,7 @@ interface PdfPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   obraId: string;
   obraNome: string;
+  selectedEtapaIds?: string[];
 }
 
 export function PdfPreviewDialog({
@@ -64,6 +65,7 @@ export function PdfPreviewDialog({
   onOpenChange,
   obraId,
   obraNome,
+  selectedEtapaIds,
 }: PdfPreviewDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [pdfData, setPdfData] = useState<string | null>(null);
@@ -86,9 +88,9 @@ export function PdfPreviewDialog({
         console.warn("Could not load logo:", e);
       }
 
-      console.log("Calling generate-pdf with obraId:", obraId);
+      console.log("Calling generate-pdf with obraId:", obraId, "etapaIds:", selectedEtapaIds);
       const { data, error: invokeError } = await supabase.functions.invoke("generate-pdf", {
-        body: { obraId, logoUrl: logoBase64 },
+        body: { obraId, logoUrl: logoBase64, etapaIds: selectedEtapaIds },
       });
 
       console.log("Response from generate-pdf:", { data: !!data, error: invokeError });

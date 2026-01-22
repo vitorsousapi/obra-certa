@@ -14,6 +14,7 @@ import { EtapaStepper, type EtapaWithResponsavel } from "@/components/obras/Etap
 import { AdicionarEtapaDialog } from "@/components/obras/AdicionarEtapaDialog";
 import { EditarEtapaDialog } from "@/components/obras/EditarEtapaDialog";
 import { PdfPreviewDialog } from "@/components/obras/PdfPreviewDialog";
+import { PdfEtapaSelector } from "@/components/obras/PdfEtapaSelector";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,11 +27,23 @@ export default function ObraDetalhes() {
   const { mutate: releaseSignature, isPending: isReleasing } = useReleaseSignature();
   const [editingEtapa, setEditingEtapa] = useState<EtapaWithResponsavel | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [pdfSelectorOpen, setPdfSelectorOpen] = useState(false);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [selectedEtapaIds, setSelectedEtapaIds] = useState<string[]>([]);
 
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
     setEditingEtapa(etapa);
     setEditDialogOpen(true);
+  };
+
+  const handleGeneratePdf = (etapaIds: string[]) => {
+    setSelectedEtapaIds(etapaIds);
+    setPdfPreviewOpen(true);
+  };
+
+  const handleExportSingleEtapa = (etapa: EtapaWithResponsavel) => {
+    setSelectedEtapaIds([etapa.id]);
+    setPdfPreviewOpen(true);
   };
 
   if (isLoading) {
@@ -99,7 +112,7 @@ export default function ObraDetalhes() {
           <div className="flex gap-2 flex-wrap">
             <Button 
               variant="outline"
-              onClick={() => setPdfPreviewOpen(true)}
+              onClick={() => setPdfSelectorOpen(true)}
             >
               <FileDown className="h-4 w-4 mr-2" />
               Visualizar PDF
@@ -250,6 +263,7 @@ export default function ObraDetalhes() {
               etapas={etapas} 
               showEditButton={true}
               onEditClick={handleEditEtapa}
+              onExportClick={handleExportSingleEtapa}
             />
           </CardContent>
         </Card>
@@ -261,11 +275,20 @@ export default function ObraDetalhes() {
           onOpenChange={setEditDialogOpen}
         />
 
+        <PdfEtapaSelector
+          open={pdfSelectorOpen}
+          onOpenChange={setPdfSelectorOpen}
+          obraNome={obra.nome}
+          etapas={etapas}
+          onGenerate={handleGeneratePdf}
+        />
+
         <PdfPreviewDialog
           open={pdfPreviewOpen}
           onOpenChange={setPdfPreviewOpen}
           obraId={obra.id}
           obraNome={obra.nome}
+          selectedEtapaIds={selectedEtapaIds}
         />
       </div>
     </AdminLayout>

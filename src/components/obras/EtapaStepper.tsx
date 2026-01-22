@@ -1,4 +1,4 @@
-import { Check, Clock, Send, X, Circle, Pencil } from "lucide-react";
+import { Check, Clock, Send, X, Circle, Pencil, FileDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EtapaStatusBadge } from "./EtapaStatusBadge";
@@ -34,6 +34,7 @@ interface EtapaStepperProps {
   etapas: EtapaWithResponsavel[];
   onEtapaClick?: (etapa: EtapaWithResponsavel) => void;
   onEditClick?: (etapa: EtapaWithResponsavel) => void;
+  onExportClick?: (etapa: EtapaWithResponsavel) => void;
   showEditButton?: boolean;
 }
 
@@ -53,7 +54,7 @@ const statusLineColors: Record<EtapaStatus, string> = {
   rejeitada: "bg-red-300",
 };
 
-export function EtapaStepper({ etapas, onEtapaClick, onEditClick, showEditButton = false }: EtapaStepperProps) {
+export function EtapaStepper({ etapas, onEtapaClick, onEditClick, onExportClick, showEditButton = false }: EtapaStepperProps) {
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -134,20 +135,36 @@ export function EtapaStepper({ etapas, onEtapaClick, onEditClick, showEditButton
                 </div>
 
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  {showEditButton && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditClick?.(etapa);
-                      }}
-                    >
-                      <Pencil className="h-3.5 w-3.5 mr-1" />
-                      Editar
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {onExportClick && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onExportClick(etapa);
+                        }}
+                        title="Exportar etapa como PDF"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {showEditButton && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditClick?.(etapa);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        Editar
+                      </Button>
+                    )}
+                  </div>
                   {etapa.prazo && (
                     <span className="text-xs text-muted-foreground">
                       Prazo: {format(new Date(etapa.prazo), "dd/MM/yyyy", { locale: ptBR })}
