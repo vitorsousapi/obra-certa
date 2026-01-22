@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ClipboardList, Building2, Calendar, Send, Clock, Check, X, AlertTriangle, FileSignature, Loader2 } from "lucide-react";
+import { ClipboardList, Building2, Calendar, Send, Clock, Check, X, AlertTriangle, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useSignObra } from "@/hooks/useSignObra";
-import { format, isToday, isPast, isFuture } from "date-fns";
+import { format, isToday, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -24,7 +23,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
-import { SignaturePadDialog } from "@/components/obras/SignaturePadDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
@@ -42,14 +40,6 @@ interface MinhaEtapa {
     nome: string;
     cliente_nome: string;
   };
-}
-
-interface ObraParaAssinar {
-  id: string;
-  nome: string;
-  cliente_nome: string;
-  assinatura_liberada: boolean;
-  assinatura_data: string | null;
 }
 
 function useMinhasEtapas() {
@@ -90,60 +80,6 @@ function useMinhasEtapas() {
 
       if (error) throw error;
       return data as unknown as MinhaEtapa[];
-    },
-    enabled: !!profile?.id,
-  });
-}
-
-// Hook to fetch obras where this user was responsible for the last etapa and signature is released
-function useObrasParaAssinar() {
-  const { profile } = useAuth();
-  
-  return useQuery({
-    queryKey: ["obras-para-assinar", profile?.id],
-    queryFn: async (): Promise<ObraParaAssinar[]> => {
-      if (!profile?.id) return [];
-      
-      // Get obras that are concluidas with assinatura_liberada = true and not yet signed
-      const { data: obras, error: obrasError } = await supabase
-        .from("obras")
-        .select("id, nome, cliente_nome, assinatura_liberada, assinatura_data")
-        .eq("status", "concluida")
-        .eq("assinatura_liberada", true)
-        .is("assinatura_data", null);
-
-      if (obrasError) throw obrasError;
-      if (!obras || obras.length === 0) return [];
-
-      // For each obra, check if this user was responsible for the last etapa
-      const obrasParaAssinar: ObraParaAssinar[] = [];
-
-      for (const obra of obras) {
-        // Get the last etapa (highest ordem) for this obra
-        const { data: lastEtapa, error: etapaError } = await supabase
-          .from("etapas")
-          .select("id")
-          .eq("obra_id", obra.id)
-          .order("ordem", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (etapaError || !lastEtapa) continue;
-
-        // Check if this user is a responsible for the last etapa
-        const { data: responsavel, error: respError } = await supabase
-          .from("etapa_responsaveis")
-          .select("id")
-          .eq("etapa_id", lastEtapa.id)
-          .eq("responsavel_id", profile.id)
-          .maybeSingle();
-
-        if (!respError && responsavel) {
-          obrasParaAssinar.push(obra);
-        }
-      }
-
-      return obrasParaAssinar;
     },
     enabled: !!profile?.id,
   });
@@ -305,64 +241,19 @@ function EtapaCard({
   );
 }
 
-function SignatureCard({ 
-  obra, 
-  onSign 
-}: { 
-  obra: ObraParaAssinar; 
-  onSign: (obra: ObraParaAssinar) => void;
-}) {
-  return (
-    <Card className="border-primary/50 bg-primary/5">
-      <CardContent className="pt-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <FileSignature className="h-8 w-8 text-primary" />
-            <div>
-              <h3 className="font-semibold">{obra.nome}</h3>
-              <p className="text-sm text-muted-foreground">
-                Cliente: {obra.cliente_nome}
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => onSign(obra)}>
-            <FileSignature className="h-4 w-4 mr-2" />
-            Solicitar Assinatura
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function ColaboradorAtividades() {
   const [submittingEtapa, setSubmittingEtapa] = useState<MinhaEtapa | null>(null);
   const [observacoes, setObservacoes] = useState("");
-  const [signingObra, setSigningObra] = useState<ObraParaAssinar | null>(null);
   
   const { data: etapas, isLoading } = useMinhasEtapas();
-  const { data: obrasParaAssinar, isLoading: isLoadingObras } = useObrasParaAssinar();
   const submitEtapa = useSubmitEtapa();
   const startEtapa = useStartEtapa();
-  const { mutateAsync: signObra, isPending: isSigning } = useSignObra();
-  const queryClient = useQueryClient();
 
   const handleSubmit = async () => {
     if (!submittingEtapa) return;
     await submitEtapa.mutateAsync({ id: submittingEtapa.id, observacoes });
     setSubmittingEtapa(null);
     setObservacoes("");
-  };
-
-  const handleSignature = async (signatureDataUrl: string, nome: string) => {
-    if (!signingObra) return;
-    await signObra({
-      obraId: signingObra.id,
-      signatureDataUrl,
-      nome,
-    });
-    queryClient.invalidateQueries({ queryKey: ["obras-para-assinar"] });
-    setSigningObra(null);
   };
 
   // Filter etapas
@@ -392,25 +283,6 @@ export default function ColaboradorAtividades() {
             Gerencie suas etapas e atividades atribuídas.
           </p>
         </div>
-
-        {/* Obras aguardando assinatura */}
-        {obrasParaAssinar && obrasParaAssinar.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <FileSignature className="h-5 w-5" />
-              Obras aguardando assinatura do cliente
-            </h2>
-            <div className="space-y-3">
-              {obrasParaAssinar.map((obra) => (
-                <SignatureCard 
-                  key={obra.id} 
-                  obra={obra} 
-                  onSign={setSigningObra}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -598,16 +470,6 @@ export default function ColaboradorAtividades() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Signature Dialog */}
-      <SignaturePadDialog
-        open={!!signingObra}
-        onOpenChange={(open) => !open && setSigningObra(null)}
-        obraName={signingObra?.nome || ""}
-        clienteName={signingObra?.cliente_nome || ""}
-        onConfirm={handleSignature}
-        isPending={isSigning}
-      />
     </ColaboradorLayout>
   );
 }

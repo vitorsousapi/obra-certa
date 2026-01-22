@@ -32,6 +32,7 @@ const obraSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   cliente_nome: z.string().min(1, "Nome do cliente é obrigatório"),
   cliente_email: z.string().email("Email inválido"),
+  cliente_telefone: z.string().optional(),
   data_inicio: z.string().min(1, "Data de início é obrigatória"),
   data_prevista: z.string().min(1, "Data prevista é obrigatória"),
   status: z.enum(["nao_iniciada", "em_andamento", "aguardando_aprovacao", "concluida", "cancelada"]).default("nao_iniciada"),
@@ -55,6 +56,7 @@ export default function ObraForm() {
       nome: "",
       cliente_nome: "",
       cliente_email: "",
+      cliente_telefone: "",
       data_inicio: new Date().toISOString().split("T")[0],
       data_prevista: "",
       status: "nao_iniciada",
@@ -68,6 +70,7 @@ export default function ObraForm() {
         nome: obra.nome,
         cliente_nome: obra.cliente_nome,
         cliente_email: obra.cliente_email,
+        cliente_telefone: (obra as any).cliente_telefone || "",
         data_inicio: obra.data_inicio,
         data_prevista: obra.data_prevista,
         status: obra.status,
@@ -85,10 +88,11 @@ export default function ObraForm() {
           nome: data.nome,
           cliente_nome: data.cliente_nome,
           cliente_email: data.cliente_email,
+          cliente_telefone: data.cliente_telefone || null,
           data_inicio: data.data_inicio,
           data_prevista: data.data_prevista,
           status: data.status || "nao_iniciada",
-        });
+        } as any);
         if (newObra?.id) {
           navigate(`/obras/${newObra.id}`);
         }
@@ -199,6 +203,24 @@ export default function ObraForm() {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="cliente_telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone do Cliente (WhatsApp)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField

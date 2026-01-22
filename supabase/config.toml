@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.request-signature]
 verify_jwt = false
+
+[functions.send-whatsapp]
+verify_jwt = false
+
+[functions.send-signature-link]
+verify_jwt = false
+
+[functions.send-etapa-summary]
+verify_jwt = false
