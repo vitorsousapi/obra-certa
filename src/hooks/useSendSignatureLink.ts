@@ -29,7 +29,7 @@ export function useSendSignatureLink() {
       queryClient.invalidateQueries({ queryKey: ["etapas"] });
       toast({
         title: "Link enviado",
-        description: "O link de assinatura foi enviado para o cliente via WhatsApp.",
+        description: "O link foi enviado. Pode levar alguns instantes para aparecer no WhatsApp do cliente.",
       });
     },
     onError: (error) => {

@@ -190,6 +190,8 @@ Equipe Tavitrum`;
       body: JSON.stringify({
         number: formattedPhone,
         text: message,
+        delay: 1500,
+        linkPreview: false,
       }),
     });
 
