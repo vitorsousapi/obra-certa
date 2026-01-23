@@ -24,7 +24,7 @@ export function useSendEtapaSummary() {
     onSuccess: () => {
       toast({
         title: "Resumo enviado",
-        description: "O resumo da etapa foi enviado para o cliente via WhatsApp.",
+        description: "O resumo foi enviado. Pode levar alguns instantes para aparecer no WhatsApp do cliente.",
       });
     },
     onError: (error) => {
