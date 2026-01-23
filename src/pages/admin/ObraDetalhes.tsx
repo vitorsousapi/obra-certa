@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,9 @@ export default function ObraDetalhes() {
   // Extract etapa IDs for the hook - must be called before any returns
   const etapas = (obra as any)?.etapas || [];
   const obraData = obra as any;
-  const etapaIds = etapas.map((e: any) => e.id);
+  
+  // Stabilize etapaIds to prevent unnecessary re-renders
+  const etapaIds = useMemo(() => etapas.map((e: any) => e.id), [etapas]);
   const { data: etapaAssinaturas } = useEtapaAssinaturas(etapaIds);
 
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
