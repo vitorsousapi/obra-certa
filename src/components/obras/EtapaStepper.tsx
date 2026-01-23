@@ -2,6 +2,7 @@ import { Check, Clock, Send, X, Circle, Pencil, FileDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EtapaStatusBadge } from "./EtapaStatusBadge";
+import { EtapaWhatsAppActions } from "./EtapaWhatsAppActions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Database } from "@/integrations/supabase/types";
@@ -36,6 +37,9 @@ interface EtapaStepperProps {
   onEditClick?: (etapa: EtapaWithResponsavel) => void;
   onExportClick?: (etapa: EtapaWithResponsavel) => void;
   showEditButton?: boolean;
+  clienteNome?: string;
+  clienteTelefone?: string | null;
+  showWhatsAppActions?: boolean;
 }
 
 const statusIcons: Record<EtapaStatus, React.ReactNode> = {
@@ -54,7 +58,16 @@ const statusLineColors: Record<EtapaStatus, string> = {
   rejeitada: "bg-red-300",
 };
 
-export function EtapaStepper({ etapas, onEtapaClick, onEditClick, onExportClick, showEditButton = false }: EtapaStepperProps) {
+export function EtapaStepper({ 
+  etapas, 
+  onEtapaClick, 
+  onEditClick, 
+  onExportClick, 
+  showEditButton = false,
+  clienteNome,
+  clienteTelefone,
+  showWhatsAppActions = false
+}: EtapaStepperProps) {
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -202,6 +215,19 @@ export function EtapaStepper({ etapas, onEtapaClick, onEditClick, onExportClick,
                   <p className="text-sm text-muted-foreground">
                     <span className="font-medium">Observações:</span> {etapa.observacoes}
                   </p>
+                </div>
+              )}
+
+              {showWhatsAppActions && etapa.status === "aprovada" && clienteNome && (
+                <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                  <EtapaWhatsAppActions
+                    etapaId={etapa.id}
+                    etapaTitulo={etapa.titulo}
+                    clienteNome={clienteNome}
+                    clienteTelefone={clienteTelefone || null}
+                    isAprovada={true}
+                    variant="dropdown"
+                  />
                 </div>
               )}
             </div>

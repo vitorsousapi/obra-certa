@@ -213,6 +213,9 @@ export default function ObraDetalhes() {
               showEditButton={true}
               onEditClick={handleEditEtapa}
               onExportClick={handleExportSingleEtapa}
+              clienteNome={obra.cliente_nome}
+              clienteTelefone={obraData.cliente_telefone}
+              showWhatsAppActions={true}
             />
           </CardContent>
         </Card>
