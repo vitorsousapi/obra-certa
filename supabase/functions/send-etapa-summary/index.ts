@@ -104,6 +104,38 @@ Equipe Tavitrum`;
 
     const { api_url, api_key, instance_name } = config;
 
+    // Check connection status before sending
+    const statusUrl = `${api_url}/instance/connectionState/${instance_name}`;
+    const statusResponse = await fetch(statusUrl, {
+      headers: { "apikey": api_key }
+    });
+    const statusData = await statusResponse.json();
+    const connectionState = statusData?.instance?.state || statusData?.state || "unknown";
+    
+    console.log("WhatsApp connection state:", connectionState);
+    
+    if (connectionState !== "open" && connectionState !== "connected") {
+      // Update connected status in database
+      await supabase
+        .from("whatsapp_config")
+        .update({ connected: false, updated_at: new Date().toISOString() })
+        .eq("id", config.id);
+
+      return new Response(
+        JSON.stringify({ 
+          error: "WhatsApp desconectado. Por favor, reconecte a instância nas Configurações.",
+          connectionState: connectionState
+        }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Update connected status to true
+    await supabase
+      .from("whatsapp_config")
+      .update({ connected: true, updated_at: new Date().toISOString() })
+      .eq("id", config.id);
+
     // Send message via Evolution API
     const evolutionUrl = `${api_url}/message/sendText/${instance_name}`;
     
