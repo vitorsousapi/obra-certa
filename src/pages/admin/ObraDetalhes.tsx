@@ -31,6 +31,12 @@ export default function ObraDetalhes() {
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [selectedEtapaIds, setSelectedEtapaIds] = useState<string[]>([]);
 
+  // Extract etapa IDs for the hook - must be called before any returns
+  const etapas = (obra as any)?.etapas || [];
+  const obraData = obra as any;
+  const etapaIds = etapas.map((e: any) => e.id);
+  const { data: etapaAssinaturas } = useEtapaAssinaturas(etapaIds);
+
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
     setEditingEtapa(etapa);
     setEditDialogOpen(true);
@@ -79,11 +85,6 @@ export default function ObraDetalhes() {
       </AdminLayout>
     );
   }
-
-  const etapas = (obra as any).etapas || [];
-  const obraData = obra as any;
-  const etapaIds = etapas.map((e: any) => e.id);
-  const { data: etapaAssinaturas } = useEtapaAssinaturas(etapaIds);
 
   return (
     <AdminLayout title={obra.nome}>
