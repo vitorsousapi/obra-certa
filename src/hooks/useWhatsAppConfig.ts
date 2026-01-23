@@ -90,6 +90,7 @@ export function useSaveWhatsAppConfig() {
 }
 
 export function useTestWhatsAppConnection() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
@@ -112,20 +113,41 @@ export function useTestWhatsAppConnection() {
       }
 
       const data = await response.json();
-      return data;
+      const state = data?.instance?.state || data?.state || "unknown";
+      const isConnected = state === "open" || state === "connected";
+
+      // Update connection status in database
+      const { data: existing } = await (supabase as any)
+        .from("whatsapp_config")
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        await (supabase as any)
+          .from("whatsapp_config")
+          .update({ 
+            connected: isConnected, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq("id", existing.id);
+      }
+
+      return { ...data, isConnected, state };
     },
     onSuccess: (data) => {
-      const state = data?.instance?.state || data?.state || "unknown";
-      if (state === "open" || state === "connected") {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config"] });
+      
+      if (data.isConnected) {
         toast({
           title: "Conexão bem-sucedida",
           description: "WhatsApp está conectado e pronto para uso.",
         });
       } else {
         toast({
-          title: "Instância encontrada",
-          description: `Status atual: ${state}. Verifique se o WhatsApp está conectado.`,
-          variant: "default",
+          title: "WhatsApp desconectado",
+          description: `Status atual: ${data.state}. Verifique se o celular está online e reconecte.`,
+          variant: "destructive",
         });
       }
     },

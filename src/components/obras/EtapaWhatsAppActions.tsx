@@ -16,9 +16,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, Send, FileSignature, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MessageCircle, Send, FileSignature, Loader2, WifiOff } from "lucide-react";
 import { useSendSignatureLink } from "@/hooks/useSendSignatureLink";
 import { useSendEtapaSummary } from "@/hooks/useSendEtapaSummary";
+import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 
 interface EtapaWhatsAppActionsProps {
   etapaId: string;
@@ -43,8 +45,12 @@ export function EtapaWhatsAppActions({
   const [actionType, setActionType] = useState<ActionType>(null);
   const [phone, setPhone] = useState(clienteTelefone || "");
 
+  const { data: whatsappConfig } = useWhatsAppConfig();
   const sendSignatureLink = useSendSignatureLink();
   const sendEtapaSummary = useSendEtapaSummary();
+
+  const isConfigured = !!whatsappConfig?.api_url;
+  const isConnected = whatsappConfig?.connected ?? false;
 
   const openDialog = (type: ActionType) => {
     setActionType(type);
@@ -71,17 +77,35 @@ export function EtapaWhatsAppActions({
     return null;
   }
 
+  if (!isConfigured) {
+    return null;
+  }
+
   if (variant === "dropdown") {
     return (
       <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1">
-              <MessageCircle className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className={`gap-1 ${!isConnected ? "opacity-70" : ""}`}
+            >
+              {!isConnected ? (
+                <WifiOff className="h-4 w-4 text-destructive" />
+              ) : (
+                <MessageCircle className="h-4 w-4" />
+              )}
               WhatsApp
+              {!isConnected && <span className="text-xs text-destructive ml-1">(offline)</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {!isConnected && (
+              <div className="px-2 py-1.5 text-xs text-destructive bg-destructive/10 rounded mb-1">
+                WhatsApp desconectado
+              </div>
+            )}
             <DropdownMenuItem onClick={() => openDialog("signature")}>
               <FileSignature className="h-4 w-4 mr-2" />
               Enviar Link de Assinatura
@@ -106,6 +130,14 @@ export function EtapaWhatsAppActions({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {!isConnected && (
+                <Alert variant="destructive">
+                  <WifiOff className="h-4 w-4" />
+                  <AlertDescription>
+                    WhatsApp desconectado. A mensagem será enviada quando a conexão for restabelecida.
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone do Cliente</Label>
                 <Input
@@ -137,7 +169,13 @@ export function EtapaWhatsAppActions({
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
+        {!isConnected && (
+          <span className="text-xs text-destructive flex items-center gap-1">
+            <WifiOff className="h-3 w-3" />
+            Offline
+          </span>
+        )}
         <Button variant="outline" size="sm" onClick={() => openDialog("signature")}>
           <FileSignature className="h-4 w-4 mr-1" />
           Link de Assinatura
@@ -161,6 +199,14 @@ export function EtapaWhatsAppActions({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {!isConnected && (
+              <Alert variant="destructive">
+                <WifiOff className="h-4 w-4" />
+                <AlertDescription>
+                  WhatsApp desconectado. A mensagem será enviada quando a conexão for restabelecida.
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone do Cliente</Label>
               <Input
