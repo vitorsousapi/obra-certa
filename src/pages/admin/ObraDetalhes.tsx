@@ -209,7 +209,8 @@ export default function ObraDetalhes() {
           <Separator />
           <CardContent className="pt-6">
             <EtapaStepper 
-              etapas={etapas} 
+              etapas={etapas}
+              etapaAssinaturas={etapaAssinaturas}
               showEditButton={true}
               onEditClick={handleEditEtapa}
               onExportClick={handleExportSingleEtapa}
