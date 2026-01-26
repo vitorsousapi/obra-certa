@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.send-etapa-summary]
 verify_jwt = false
+
+[functions.sign-etapa]
+verify_jwt = false
