@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.sign-etapa]
 verify_jwt = false
+
+[functions.get-etapa-by-token]
+verify_jwt = false

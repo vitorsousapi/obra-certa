@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEtapaAssinaturaByToken } from "@/hooks/useEtapaAssinaturas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,31 +15,43 @@ interface EtapaAnexo {
   tipo: string;
 }
 
+interface EtapaPublicData {
+  assinatura: {
+    id: string;
+    assinatura_data: string | null;
+    assinatura_nome: string | null;
+  };
+  etapa: {
+    id: string;
+    titulo: string;
+    descricao: string | null;
+    ordem: number;
+  };
+  obra: {
+    nome: string;
+    cliente_nome: string;
+  };
+  anexos: EtapaAnexo[];
+}
+
 export default function VisualizarEtapa() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
-  const { data: assinatura, isLoading: loadingAssinatura, error } = useEtapaAssinaturaByToken(token);
-
-  const etapaId = assinatura?.etapa?.id;
-
-  const { data: anexos, isLoading: loadingAnexos } = useQuery({
-    queryKey: ["etapa-anexos-public", etapaId],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["etapa-public", token],
     queryFn: async () => {
-      if (!etapaId) return [];
-      const { data, error } = await supabase
-        .from("etapa_anexos")
-        .select("id, nome, url, tipo")
-        .eq("etapa_id", etapaId);
-
+      const { data, error } = await supabase.functions.invoke<EtapaPublicData>("get-etapa-by-token", {
+        body: { token }
+      });
       if (error) throw error;
-      return data as EtapaAnexo[];
+      return data;
     },
-    enabled: !!etapaId,
+    enabled: !!token,
   });
 
-  const imageAnexos = anexos?.filter((a) => a.tipo.startsWith("image/")) || [];
+  const imageAnexos = data?.anexos?.filter((a) => a.tipo.startsWith("image/")) || [];
 
   const handlePrevImage = () => {
     if (selectedImageIndex !== null && selectedImageIndex > 0) {
@@ -54,7 +65,7 @@ export default function VisualizarEtapa() {
     }
   };
 
-  if (loadingAssinatura) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
@@ -72,7 +83,7 @@ export default function VisualizarEtapa() {
     );
   }
 
-  if (error || !assinatura) {
+  if (error || !data) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
@@ -89,8 +100,7 @@ export default function VisualizarEtapa() {
     );
   }
 
-  const { etapa } = assinatura;
-  const obra = etapa?.obra;
+  const { etapa, obra } = data;
 
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
@@ -155,13 +165,7 @@ export default function VisualizarEtapa() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loadingAnexos ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="aspect-square rounded-lg" />
-                ))}
-              </div>
-            ) : imageAnexos.length === 0 ? (
+            {imageAnexos.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 Nenhuma foto anexada a esta etapa.
               </p>
