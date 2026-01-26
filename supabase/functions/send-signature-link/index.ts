@@ -106,7 +106,8 @@ const handler = async (req: Request): Promise<Response> => {
       token = signature.token;
     }
 
-    // Build signature link
+    // Build links
+    const viewLink = `${baseUrl}/etapa/${token}`;
     const signatureLink = `${baseUrl}/assinar/${token}`;
 
     // Build message
@@ -116,8 +117,10 @@ const handler = async (req: Request): Promise<Response> => {
 
 A etapa *"${etapa.titulo}"* (etapa ${etapa.ordem}) da obra *"${obra.nome}"* foi aprovada e concluída.
 
-Por favor, acesse o link abaixo para confirmar o recebimento com sua assinatura:
+📸 Visualize o relatório com fotos:
+${viewLink}
 
+✍️ Confirme o recebimento com sua assinatura:
 ${signatureLink}
 
 Atenciosamente,

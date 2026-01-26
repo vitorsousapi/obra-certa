@@ -18,6 +18,7 @@ import Aprovacoes from "./pages/admin/Aprovacoes";
 import Configuracoes from "./pages/admin/Configuracoes";
 import ColaboradorAtividades from "./pages/colaborador/Atividades";
 import AssinarEtapa from "./pages/AssinarEtapa";
+import VisualizarEtapa from "./pages/VisualizarEtapa";
 
 import NotFound from "./pages/NotFound";
 
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Route path="/aprovacoes" element={<ProtectedRoute requiredRole="admin"><Aprovacoes /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
       <Route path="/assinar/:token" element={<AssinarEtapa />} />
+      <Route path="/etapa/:token" element={<VisualizarEtapa />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
