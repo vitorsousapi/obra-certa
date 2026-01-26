@@ -1,131 +1,174 @@
 
 
-## Plano: Adicionar Link de Relatório na Mensagem de Assinatura
+## Plano: Corrigir Visualização do Relatório da Etapa
 
-### Objetivo
+### Problema Identificado
 
-Incluir na mensagem do WhatsApp que envia o link de assinatura também um link para visualizar o relatório da etapa (com fotos), permitindo que o cliente veja os detalhes antes de assinar.
+A página `/etapa/:token` está mostrando dados vazios porque:
 
-### Abordagem
+1. A tabela `etapa_assinaturas` tem política RLS pública: `token IS NOT NULL`
+2. As tabelas `etapas` e `obras` **NÃO** têm políticas públicas - só permitem acesso para usuários autenticados (admins/colaboradores)
+3. Quando o cliente não autenticado acessa a página, o JOIN retorna a assinatura mas **não** retorna os dados das tabelas relacionadas
 
-Vamos criar uma nova página pública para visualização do relatório da etapa (semelhante à página `/assinar/:token`) que mostra as informações da etapa junto com os anexos/fotos.
+**Comprovação:**
+```sql
+-- Query direta (com permissão elevada) retorna dados corretamente:
+SELECT ea.*, e.titulo, o.nome, o.cliente_nome
+FROM etapa_assinaturas ea
+JOIN etapas e ON ea.etapa_id = e.id
+JOIN obras o ON e.obra_id = o.id
+WHERE ea.token = '6f2d88fb-888b-46ad-a873-7cb04c092369'
+
+-- Resultado: "Casa Alphavile", "Thaís Brito", "Etapa 3"
+```
+
+### Solução Proposta
+
+Criar uma **Edge Function** (`get-etapa-by-token`) que busque os dados da etapa usando Service Role Key, permitindo acesso público sem expor dados sensíveis.
+
+Esta é a mesma abordagem que usamos com sucesso para `sign-etapa`.
 
 ### Mudanças Necessárias
 
-#### 1. Nova Página Pública: `VisualizarEtapa`
+#### 1. Nova Edge Function: `get-etapa-by-token`
 
-Criar `src/pages/VisualizarEtapa.tsx` com:
-- Acesso público via token (reutilizando o mesmo token da assinatura)
-- Exibição das informações da obra e etapa
-- Galeria de fotos/anexos da etapa
-- Link para a página de assinatura
-- Design responsivo e amigável
+```text
+supabase/functions/get-etapa-by-token/index.ts
 
-Estrutura da página:
-- Header com logo e título
-- Card com informações da obra (nome, cliente)
-- Card com informações da etapa (título, ordem, descrição)
-- Galeria de imagens em grid com visualização ampliada
-- Botão para ir à página de assinatura
-
-#### 2. Nova Rota no App.tsx
-
-Adicionar rota:
-```
-/etapa/:token → <VisualizarEtapa />
+Responsabilidades:
+- Receber: token
+- Validar que o token existe
+- Buscar dados da etapa e obra usando Service Role
+- Buscar anexos da etapa
+- Retornar dados sanitizados (sem expor IDs sensíveis)
 ```
 
-#### 3. Atualizar Edge Function `send-signature-link`
-
-Modificar a mensagem para incluir dois links:
-- Link de visualização do relatório
-- Link de assinatura
-
-Nova estrutura da mensagem:
+**Dados retornados:**
+```typescript
+{
+  assinatura: {
+    id: string,
+    assinatura_data: string | null,
+    assinatura_nome: string | null
+  },
+  etapa: {
+    id: string,
+    titulo: string,
+    descricao: string | null,
+    ordem: number
+  },
+  obra: {
+    nome: string,
+    cliente_nome: string
+  },
+  anexos: Array<{
+    id: string,
+    nome: string,
+    url: string,
+    tipo: string
+  }>
+}
 ```
-Olá {cliente_nome}! 👋
 
-A etapa "{etapa_titulo}" (etapa {ordem}) da obra "{obra_nome}" foi aprovada e concluída.
+#### 2. Atualizar Página `VisualizarEtapa.tsx`
 
-📸 Visualize o relatório com fotos:
-{link_visualizacao}
-
-✍️ Confirme o recebimento com sua assinatura:
-{link_assinatura}
-
-Atenciosamente,
-Equipe Tavitrum
+```text
+Mudanças:
+- Substituir useEtapaAssinaturaByToken por chamada à Edge Function
+- Remover query separada para anexos (virá junto na resposta)
+- Manter toda a lógica de exibição
 ```
 
-#### 4. Hook para Buscar Anexos por Token
+#### 3. Configuração da Edge Function
 
-Criar `useEtapaAnexosByToken` para buscar anexos da etapa de forma pública:
-- Recebe o token como parâmetro
-- Busca o `etapa_id` através do token
-- Retorna os anexos daquela etapa
+```text
+supabase/config.toml
 
-### Segurança
-
-- O acesso é controlado pelo token único (UUID)
-- Apenas dados públicos são expostos (obra nome, etapa título, fotos)
-- Não expõe dados sensíveis como emails ou telefones
-- RLS da tabela `etapa_anexos` permite leitura pública das URLs de imagens que já são públicas no Storage
+Adicionar:
+[functions.get-etapa-by-token]
+verify_jwt = false  # Permitir acesso público
+```
 
 ### Fluxo Atualizado
 
 ```text
-Admin aprova etapa
+Cliente acessa /etapa/:token
         |
         v
-Clica em "Enviar Link de Assinatura"
+VisualizarEtapa chama Edge Function
         |
         v
-Edge Function envia mensagem com 2 links:
+[Edge Function get-etapa-by-token]
         |
-        ├─> /etapa/:token    → Ver relatório com fotos
+        ├─> Valida token
         |
-        └─> /assinar/:token  → Assinar digitalmente
+        ├─> Busca etapa_assinaturas (Service Role)
+        |
+        ├─> Busca etapas + obras (Service Role)
+        |
+        ├─> Busca etapa_anexos (Service Role)
+        |
+        v
+Retorna dados para o cliente
+        |
+        v
+Página renderiza com informações corretas
 ```
 
 ### Arquivos a Criar/Modificar
 
 | Arquivo | Ação | Descrição |
 |---------|------|-----------|
-| `src/pages/VisualizarEtapa.tsx` | Criar | Nova página pública de visualização |
-| `src/App.tsx` | Modificar | Adicionar rota `/etapa/:token` |
-| `supabase/functions/send-signature-link/index.ts` | Modificar | Incluir link de visualização na mensagem |
-| `src/hooks/useEtapaAssinaturas.ts` | Modificar | Adicionar busca de anexos por token |
+| `supabase/functions/get-etapa-by-token/index.ts` | Criar | Nova Edge Function para buscar dados |
+| `src/pages/VisualizarEtapa.tsx` | Modificar | Usar Edge Function em vez de query direta |
+| `supabase/config.toml` | Modificar | Adicionar configuração da nova função |
+
+### Segurança
+
+- O token UUID continua sendo a chave de acesso única
+- A Edge Function não expõe IDs internos desnecessários
+- Apenas dados públicos são retornados (nome obra, cliente, etapa, fotos)
+- Emails e telefones não são expostos
 
 ---
 
 ### Detalhes Técnicos
 
-**Página VisualizarEtapa.tsx:**
-- Usa o hook `useEtapaAssinaturaByToken` existente para validar token e buscar dados
-- Adiciona query para buscar anexos relacionados
-- Galeria de imagens com Dialog para visualização ampliada
-- Botão que redireciona para `/assinar/:token`
+**Edge Function - Estrutura:**
+```typescript
+// Buscar assinatura por token
+const { data: assinatura } = await supabase
+  .from("etapa_assinaturas")
+  .select("*")
+  .eq("token", token)
+  .single();
 
-**Modificação da Mensagem (Edge Function):**
-```javascript
-const viewLink = `${baseUrl}/etapa/${token}`;
-const signatureLink = `${baseUrl}/assinar/${token}`;
+// Buscar etapa com obra
+const { data: etapa } = await supabase
+  .from("etapas")
+  .select("id, titulo, descricao, ordem, obra:obras(nome, cliente_nome)")
+  .eq("id", assinatura.etapa_id)
+  .single();
 
-const message = `Olá ${obra.cliente_nome}! 👋
-
-A etapa *"${etapa.titulo}"* (etapa ${etapa.ordem}) da obra *"${obra.nome}"* foi aprovada e concluída.
-
-📸 Visualize o relatório com fotos:
-${viewLink}
-
-✍️ Confirme o recebimento com sua assinatura:
-${signatureLink}
-
-Atenciosamente,
-Equipe Tavitrum`;
+// Buscar anexos
+const { data: anexos } = await supabase
+  .from("etapa_anexos")
+  .select("id, nome, url, tipo")
+  .eq("etapa_id", assinatura.etapa_id);
 ```
 
-**Política RLS (se necessário):**
-- As fotos já estão em bucket público (`etapa-anexos`)
-- A consulta de anexos será feita com base no `etapa_id` obtido via token válido
+**Hook atualizado (VisualizarEtapa):**
+```typescript
+const { data, isLoading, error } = useQuery({
+  queryKey: ["etapa-public", token],
+  queryFn: async () => {
+    const { data, error } = await supabase.functions.invoke("get-etapa-by-token", {
+      body: { token }
+    });
+    if (error) throw error;
+    return data;
+  },
+  enabled: !!token,
+});
+```
 
