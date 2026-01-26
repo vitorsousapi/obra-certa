@@ -1,11 +1,13 @@
-import { Check, Clock, Send, X, Circle, Pencil, FileDown } from "lucide-react";
+import { Check, Clock, Send, X, Circle, Pencil, FileDown, FileSignature, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { EtapaStatusBadge } from "./EtapaStatusBadge";
 import { EtapaWhatsAppActions } from "./EtapaWhatsAppActions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Database } from "@/integrations/supabase/types";
+import type { EtapaAssinatura } from "@/hooks/useEtapaAssinaturas";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
 
@@ -33,6 +35,7 @@ export interface EtapaWithResponsavel {
 
 interface EtapaStepperProps {
   etapas: EtapaWithResponsavel[];
+  etapaAssinaturas?: EtapaAssinatura[];
   onEtapaClick?: (etapa: EtapaWithResponsavel) => void;
   onEditClick?: (etapa: EtapaWithResponsavel) => void;
   onExportClick?: (etapa: EtapaWithResponsavel) => void;
@@ -59,7 +62,8 @@ const statusLineColors: Record<EtapaStatus, string> = {
 };
 
 export function EtapaStepper({ 
-  etapas, 
+  etapas,
+  etapaAssinaturas,
   onEtapaClick, 
   onEditClick, 
   onExportClick, 
@@ -75,6 +79,11 @@ export function EtapaStepper({
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Get signature status for an etapa
+  const getAssinatura = (etapaId: string) => {
+    return etapaAssinaturas?.find((a) => a.etapa_id === etapaId);
   };
 
   // Get all responsáveis (from new table + legacy field)
@@ -217,6 +226,53 @@ export function EtapaStepper({
                   </p>
                 </div>
               )}
+
+              {/* Signature Status Indicator for approved etapas */}
+              {etapa.status === "aprovada" && etapaAssinaturas && (() => {
+                const assinatura = getAssinatura(etapa.id);
+                if (!assinatura) {
+                  return null; // No signature record created yet
+                }
+                
+                if (assinatura.assinatura_data) {
+                  return (
+                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileSignature className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                          Assinado por {assinatura.assinatura_nome}
+                        </span>
+                        <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 border-green-300 dark:border-green-700">
+                          Confirmado
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+                        {format(new Date(assinatura.assinatura_data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  );
+                }
+                
+                // Signature requested but not yet signed
+                return (
+                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                        Aguardando assinatura do cliente
+                      </span>
+                      <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                        Pendente
+                      </Badge>
+                    </div>
+                    {assinatura.link_enviado_em && (
+                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                        Link enviado em {format(new Date(assinatura.link_enviado_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {showWhatsAppActions && etapa.status === "aprovada" && clienteNome && (
                 <div className="mt-3" onClick={(e) => e.stopPropagation()}>
