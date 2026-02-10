@@ -23,7 +23,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import logoHubtav from "@/assets/logo-hubtav.jpeg";
+import logoHubtav from "@/assets/logo-hubtav.png";
 
 const menuItems = [
   {
