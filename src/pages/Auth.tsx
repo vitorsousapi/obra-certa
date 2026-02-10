@@ -65,7 +65,7 @@ export default function Auth() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
             <ClipboardList className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">TavList</h1>
+          <h1 className="text-2xl font-bold tracking-tight">HubTav</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Gestão de Obras e Serviços
           </p>
