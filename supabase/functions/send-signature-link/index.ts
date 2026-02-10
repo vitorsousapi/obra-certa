@@ -10,7 +10,7 @@ const corsHeaders = {
 interface SendSignatureLinkRequest {
   etapaId: string;
   phone: string;
-  baseUrl: string; // Frontend URL for building the signature link
+  baseUrl: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -19,6 +19,40 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: roleData } = await userClient.from("user_roles").select("role").eq("user_id", user.id).single();
+    if (roleData?.role !== "admin") {
+      return new Response(
+        JSON.stringify({ error: "Admin access required" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { etapaId, phone, baseUrl }: SendSignatureLinkRequest = await req.json();
 
     if (!etapaId || !phone || !baseUrl) {
@@ -28,8 +62,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch etapa with obra details
@@ -69,7 +101,6 @@ const handler = async (req: Request): Promise<Response> => {
     let token: string;
 
     if (existingSignature) {
-      // Update the existing signature record with new link sent time
       const { data: updated, error: updateError } = await supabase
         .from("etapa_assinaturas")
         .update({ link_enviado_em: new Date().toISOString() })
@@ -86,7 +117,6 @@ const handler = async (req: Request): Promise<Response> => {
       }
       token = updated.token;
     } else {
-      // Create new signature record
       const { data: signature, error: signatureError } = await supabase
         .from("etapa_assinaturas")
         .insert({
@@ -124,7 +154,7 @@ ${viewLink}
 ${signatureLink}
 
 Atenciosamente,
-Equipe Tavitrum`;
+Equipe HubTav`;
 
     // Clean phone number
     const cleanPhone = phone.replace(/\D/g, "");
@@ -155,10 +185,7 @@ Equipe Tavitrum`;
     const statusData = await statusResponse.json();
     const connectionState = statusData?.instance?.state || statusData?.state || "unknown";
     
-    console.log("WhatsApp connection state:", connectionState);
-    
     if (connectionState !== "open" && connectionState !== "connected") {
-      // Update connected status in database
       await supabase
         .from("whatsapp_config")
         .update({ connected: false, updated_at: new Date().toISOString() })
@@ -173,7 +200,6 @@ Equipe Tavitrum`;
       );
     }
 
-    // Update connected status to true
     await supabase
       .from("whatsapp_config")
       .update({ connected: true, updated_at: new Date().toISOString() })
@@ -181,8 +207,6 @@ Equipe Tavitrum`;
 
     // Send message via Evolution API
     const evolutionUrl = `${api_url}/message/sendText/${instance_name}`;
-    
-    console.log("Sending signature link to:", formattedPhone);
 
     const evolutionResponse = await fetch(evolutionUrl, {
       method: "POST",
@@ -199,7 +223,6 @@ Equipe Tavitrum`;
     });
 
     const evolutionData = await evolutionResponse.json();
-    console.log("Evolution API response:", JSON.stringify(evolutionData));
 
     if (!evolutionResponse.ok) {
       console.error("Evolution API error:", evolutionData);
@@ -224,7 +247,7 @@ Equipe Tavitrum`;
   } catch (error: any) {
     console.error("Error in send-signature-link function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Erro interno do servidor" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

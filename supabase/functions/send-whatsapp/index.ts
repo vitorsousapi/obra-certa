@@ -18,6 +18,40 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: roleData } = await userClient.from("user_roles").select("role").eq("user_id", user.id).single();
+    if (roleData?.role !== "admin") {
+      return new Response(
+        JSON.stringify({ error: "Admin access required" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { phone, message }: SendWhatsAppRequest = await req.json();
 
     if (!phone || !message) {
@@ -35,8 +69,6 @@ const handler = async (req: Request): Promise<Response> => {
       ? cleanPhone 
       : `55${cleanPhone}`;
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch WhatsApp config
@@ -60,7 +92,6 @@ const handler = async (req: Request): Promise<Response> => {
     const evolutionUrl = `${api_url}/message/sendText/${instance_name}`;
     
     console.log("Sending WhatsApp message to:", formattedPhone);
-    console.log("Evolution API URL:", evolutionUrl);
 
     const evolutionResponse = await fetch(evolutionUrl, {
       method: "POST",
@@ -75,7 +106,6 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const evolutionData = await evolutionResponse.json();
-    console.log("Evolution API response:", JSON.stringify(evolutionData));
 
     if (!evolutionResponse.ok) {
       console.error("Evolution API error:", evolutionData);
@@ -99,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-whatsapp function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Erro interno do servidor" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
