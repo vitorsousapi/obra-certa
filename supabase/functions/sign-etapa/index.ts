@@ -21,6 +21,45 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate token is UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(token)) {
+      return new Response(
+        JSON.stringify({ error: "Token inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate nome: trim, length, and character checks
+    const nomeTrimmed = nome.trim();
+    if (nomeTrimmed.length < 2 || nomeTrimmed.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Nome deve ter entre 2 e 100 caracteres" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!/^[a-zA-ZÀ-ÿ\s'\-\.]+$/.test(nomeTrimmed)) {
+      return new Response(
+        JSON.stringify({ error: "Nome contém caracteres inválidos" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate base64 signature format and size
+    if (!/^data:image\/(png|jpeg|jpg);base64,/.test(signatureBase64)) {
+      return new Response(
+        JSON.stringify({ error: "Formato de assinatura inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const base64Size = signatureBase64.length * 0.75;
+    if (base64Size > 500000) {
+      return new Response(
+        JSON.stringify({ error: "Imagem de assinatura muito grande (máx 500KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -98,7 +137,7 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabase
       .from("etapa_assinaturas")
       .update({
-        assinatura_nome: nome,
+        assinatura_nome: nomeTrimmed,
         assinatura_data: new Date().toISOString(),
         assinatura_ip: clientIp,
         assinatura_imagem_url: assinaturaUrl,
