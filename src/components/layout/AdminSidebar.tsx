@@ -76,7 +76,7 @@ export function AdminSidebar() {
             <ClipboardList className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">TavList</span>
+            <span className="text-sm font-semibold">HubTav</span>
             <span className="text-xs text-sidebar-foreground">Gestão de Obras</span>
           </div>
         </div>
