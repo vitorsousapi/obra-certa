@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-import logoHubtav from "@/assets/logo-hubtav.jpeg";
+import logoHubtav from "@/assets/logo-hubtav.png";
 
 export default function Auth() {
   const { user, isLoading, signIn, signUp } = useAuth();
