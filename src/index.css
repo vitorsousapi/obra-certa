@@ -2,31 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TaviList Design System - Monochrome Professional Theme */
+/* HubTav Design System - Blue Professional Theme */
 
 @layer base {
   :root {
-    /* Core colors - Clean monochrome palette */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 10%;
+    --background: 210 20% 98%;
+    --foreground: 213 50% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 213 50% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 213 50% 12%;
 
-    --primary: 0 0% 10%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 211 100% 30%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 213 50% 12%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 42%;
+    --muted: 210 15% 95%;
+    --muted-foreground: 213 15% 46%;
 
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 10%;
+    --accent: 210 20% 94%;
+    --accent-foreground: 211 100% 30%;
 
     /* Status colors */
     --success: 142 76% 36%;
@@ -38,44 +37,44 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 10%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 211 100% 30%;
 
     --radius: 0.5rem;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 42%;
-    --sidebar-primary: 0 0% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 0 0% 10%;
+    --sidebar-background: 211 80% 14%;
+    --sidebar-foreground: 210 20% 80%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 211 80% 14%;
+    --sidebar-accent: 211 60% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 211 50% 22%;
+    --sidebar-ring: 211 100% 50%;
   }
 
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
+    --background: 213 40% 7%;
+    --foreground: 210 20% 98%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
+    --card: 213 40% 11%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 213 40% 11%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 10%;
+    --primary: 211 90% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 213 30% 16%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
+    --muted: 213 30% 16%;
+    --muted-foreground: 210 15% 64%;
 
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 213 30% 18%;
+    --accent-foreground: 211 90% 65%;
 
     --success: 142 76% 42%;
     --success-foreground: 0 0% 100%;
@@ -86,18 +85,18 @@
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 0% 83%;
+    --border: 213 30% 20%;
+    --input: 213 30% 20%;
+    --ring: 211 90% 55%;
 
-    --sidebar-background: 0 0% 10%;
-    --sidebar-foreground: 0 0% 64%;
-    --sidebar-primary: 0 0% 98%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 0 0% 83%;
+    --sidebar-background: 213 40% 8%;
+    --sidebar-foreground: 210 15% 64%;
+    --sidebar-primary: 211 90% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 30% 16%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 213 30% 20%;
+    --sidebar-ring: 211 90% 55%;
   }
 }
 
