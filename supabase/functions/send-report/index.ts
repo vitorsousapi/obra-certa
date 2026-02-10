@@ -14,12 +14,45 @@ interface SendReportRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: roleData } = await userClient.from("user_roles").select("role").eq("user_id", user.id).single();
+    if (roleData?.role !== "admin") {
+      return new Response(
+        JSON.stringify({ error: "Admin access required" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { obraId }: SendReportRequest = await req.json();
 
     if (!obraId) {
@@ -29,9 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Create Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch obra details with etapas
@@ -162,7 +193,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 12px;">
-                Este relatório foi gerado automaticamente pelo TaviList em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}.
+                Este relatório foi gerado automaticamente pelo HubTav em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}.
               </p>
             </div>
           </div>
@@ -178,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "TaviList <onboarding@resend.dev>",
+        from: "HubTav <onboarding@resend.dev>",
         to: [obra.cliente_email],
         subject: `Relatório da Obra: ${obra.nome}`,
         html: htmlContent,
@@ -194,8 +225,6 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
-    console.log("Email sent successfully:", emailResult);
 
     // Update obra with data_conclusao if status is concluida
     if (obra.status === "concluida" && !obra.data_conclusao) {
@@ -215,7 +244,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-report function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Erro interno do servidor" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
