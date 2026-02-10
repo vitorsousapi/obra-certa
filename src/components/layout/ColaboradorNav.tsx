@@ -11,13 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ClipboardList,
   Bell,
   User,
   LogOut,
   ListTodo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logoHubtav from "@/assets/logo-hubtav.jpeg";
 
 const navItems = [
   {
@@ -44,9 +44,7 @@ export function ColaboradorNav() {
       <div className="container flex h-14 items-center">
         {/* Logo */}
         <div className="flex items-center gap-3 mr-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <ClipboardList className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src={logoHubtav} alt="HubTav" className="h-8 w-8 rounded-lg object-contain" />
           <span className="text-lg font-semibold">HubTav</span>
         </div>
 

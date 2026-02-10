@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ClipboardList } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logoHubtav from "@/assets/logo-hubtav.jpeg";
 
 export default function Auth() {
   const { user, isLoading, signIn, signUp } = useAuth();
@@ -62,10 +63,7 @@ export default function Auth() {
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <ClipboardList className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">HubTav</h1>
+          <img src={logoHubtav} alt="HubTav" className="mx-auto mb-2 h-28 w-auto object-contain" />
           <p className="mt-1 text-sm text-muted-foreground">
             Gestão de Obras e Serviços
           </p>
