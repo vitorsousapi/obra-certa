@@ -22,8 +22,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Trash2 } from "lucide-react";
 import { useCreateEtapa, useManageEtapaResponsaveis } from "@/hooks/useEtapas";
+import { useSaveEtapaItens } from "@/hooks/useEtapaItens";
 import { useColaboradores } from "@/hooks/useColaboradores";
 
 const etapaSchema = z.object({
@@ -34,6 +35,11 @@ const etapaSchema = z.object({
 
 type EtapaFormData = z.infer<typeof etapaSchema>;
 
+interface ItemLocal {
+  descricao: string;
+  linha_produto: string;
+}
+
 interface AdicionarEtapaDialogProps {
   obraId: string;
   trigger?: React.ReactNode;
@@ -42,8 +48,10 @@ interface AdicionarEtapaDialogProps {
 export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedResponsaveis, setSelectedResponsaveis] = useState<string[]>([]);
+  const [itens, setItens] = useState<ItemLocal[]>([]);
   const createEtapa = useCreateEtapa();
   const manageResponsaveis = useManageEtapaResponsaveis();
+  const saveItens = useSaveEtapaItens();
   const { data: colaboradores } = useColaboradores();
 
   const form = useForm<EtapaFormData>({
@@ -58,6 +66,20 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
   const toggleResponsavel = (id: string) => {
     setSelectedResponsaveis((prev) =>
       prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+    );
+  };
+
+  const addItem = () => {
+    setItens((prev) => [...prev, { descricao: "", linha_produto: "" }]);
+  };
+
+  const removeItem = (index: number) => {
+    setItens((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: keyof ItemLocal, value: string) => {
+    setItens((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     );
   };
 
@@ -79,17 +101,26 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
         });
       }
 
+      // Save itens
+      const validItens = itens.filter((item) => item.descricao.trim() !== "");
+      if (validItens.length > 0 && newEtapa?.id) {
+        await saveItens.mutateAsync({
+          etapaId: newEtapa.id,
+          itens: validItens,
+        });
+      }
+
       form.reset();
       setSelectedResponsaveis([]);
+      setItens([]);
       setOpen(false);
     } catch (error) {
-      // Error is already handled by the mutation's onError
       console.error("Erro ao criar etapa:", error);
     }
   };
 
   const colaboradoresList = colaboradores?.filter((c) => c.role === "colaborador") || [];
-  const isPending = createEtapa.isPending || manageResponsaveis.isPending;
+  const isPending = createEtapa.isPending || manageResponsaveis.isPending || saveItens.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -101,12 +132,12 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Nova Etapa</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto pr-2">
             <FormField
               control={form.control}
               name="titulo"
@@ -151,6 +182,50 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
                 </FormItem>
               )}
             />
+
+            {/* Itens / Checklist */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <FormLabel>Itens da Etapa</FormLabel>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Adicionar Item
+                </Button>
+              </div>
+              {itens.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum item adicionado. Clique em "Adicionar Item" para criar um checklist.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {itens.map((item, index) => (
+                    <div key={index} className="flex items-start gap-2 p-2 border rounded-md">
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Descrição do item"
+                          value={item.descricao}
+                          onChange={(e) => updateItem(index, "descricao", e.target.value)}
+                        />
+                        <Input
+                          placeholder="Linha de produto"
+                          value={item.linha_produto}
+                          onChange={(e) => updateItem(index, "linha_produto", e.target.value)}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 px-2 text-destructive hover:text-destructive"
+                        onClick={() => removeItem(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div>
               <FormLabel>Responsáveis</FormLabel>

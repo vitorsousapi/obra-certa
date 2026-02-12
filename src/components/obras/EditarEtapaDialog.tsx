@@ -39,8 +39,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Plus } from "lucide-react";
 import { useUpdateEtapa, useDeleteEtapa, useManageEtapaResponsaveis } from "@/hooks/useEtapas";
+import { useEtapaItens, useSaveEtapaItens } from "@/hooks/useEtapaItens";
 import { useColaboradores } from "@/hooks/useColaboradores";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -78,6 +79,11 @@ interface EtapaWithResponsavel {
   }>;
 }
 
+interface ItemLocal {
+  descricao: string;
+  linha_produto: string;
+}
+
 interface EditarEtapaDialogProps {
   etapa: EtapaWithResponsavel | null;
   obraId: string;
@@ -97,9 +103,12 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
   const updateEtapa = useUpdateEtapa();
   const deleteEtapa = useDeleteEtapa();
   const manageResponsaveis = useManageEtapaResponsaveis();
+  const saveItens = useSaveEtapaItens();
   const { data: colaboradores } = useColaboradores();
+  const { data: existingItens } = useEtapaItens(etapa?.id);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedResponsaveis, setSelectedResponsaveis] = useState<string[]>([]);
+  const [itens, setItens] = useState<ItemLocal[]>([]);
 
   const form = useForm<EtapaFormData>({
     resolver: zodResolver(etapaSchema),
@@ -122,7 +131,6 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
         observacoes: etapa.observacoes || "",
       });
       
-      // Set selected responsáveis from junction table
       const responsavelIds: string[] = [];
       if (etapa.etapa_responsaveis && etapa.etapa_responsaveis.length > 0) {
         etapa.etapa_responsaveis.forEach((er) => {
@@ -131,12 +139,18 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
           }
         });
       } else if (etapa.responsavel) {
-        // Fallback to legacy single responsavel
         responsavelIds.push(etapa.responsavel.id);
       }
       setSelectedResponsaveis(responsavelIds);
     }
   }, [etapa, open, form]);
+
+  // Load existing items when data arrives
+  useEffect(() => {
+    if (existingItens && open) {
+      setItens(existingItens.map((item) => ({ descricao: item.descricao, linha_produto: item.linha_produto })));
+    }
+  }, [existingItens, open]);
 
   const toggleResponsavel = (id: string) => {
     setSelectedResponsaveis((prev) =>
@@ -144,11 +158,24 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
     );
   };
 
+  const addItem = () => {
+    setItens((prev) => [...prev, { descricao: "", linha_produto: "" }]);
+  };
+
+  const removeItem = (index: number) => {
+    setItens((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: keyof ItemLocal, value: string) => {
+    setItens((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
   const onSubmit = async (data: EtapaFormData) => {
     if (!etapa) return;
     
     try {
-      // Update etapa basic info
       await updateEtapa.mutateAsync({
         id: etapa.id,
         titulo: data.titulo,
@@ -158,16 +185,21 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
         observacoes: data.observacoes || null,
       });
 
-      // Update responsáveis
       await manageResponsaveis.mutateAsync({
         etapaId: etapa.id,
         responsavelIds: selectedResponsaveis,
         obraId,
       });
 
+      // Save itens
+      const validItens = itens.filter((item) => item.descricao.trim() !== "");
+      await saveItens.mutateAsync({
+        etapaId: etapa.id,
+        itens: validItens,
+      });
+
       onOpenChange(false);
     } catch (error) {
-      // Error is already handled by the mutation's onError
       console.error("Erro ao atualizar etapa:", error);
     }
   };
@@ -184,11 +216,11 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
 
   if (!etapa) return null;
 
-  const isPending = updateEtapa.isPending || manageResponsaveis.isPending;
+  const isPending = updateEtapa.isPending || manageResponsaveis.isPending || saveItens.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Editar Etapa</DialogTitle>
         </DialogHeader>
@@ -264,6 +296,50 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Itens / Checklist */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <FormLabel>Itens da Etapa</FormLabel>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Adicionar Item
+                </Button>
+              </div>
+              {itens.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum item adicionado.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {itens.map((item, index) => (
+                    <div key={index} className="flex items-start gap-2 p-2 border rounded-md">
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Descrição do item"
+                          value={item.descricao}
+                          onChange={(e) => updateItem(index, "descricao", e.target.value)}
+                        />
+                        <Input
+                          placeholder="Linha de produto"
+                          value={item.linha_produto}
+                          onChange={(e) => updateItem(index, "linha_produto", e.target.value)}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 px-2 text-destructive hover:text-destructive"
+                        onClick={() => removeItem(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

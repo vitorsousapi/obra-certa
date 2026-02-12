@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ClipboardList, Building2, Calendar, Send, Clock, Check, X, AlertTriangle, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
+import { useEtapaItens, useToggleEtapaItem } from "@/hooks/useEtapaItens";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
@@ -151,6 +153,34 @@ const statusConfig: Record<EtapaStatus, { label: string; icon: React.ReactNode; 
   rejeitada: { label: "Rejeitada", icon: <X className="h-4 w-4" />, className: "bg-red-100 text-red-700" },
 };
 
+function EtapaChecklist({ etapaId }: { etapaId: string }) {
+  const { data: itens } = useEtapaItens(etapaId);
+  const toggleItem = useToggleEtapaItem();
+
+  if (!itens || itens.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-1">
+      {itens.map((item) => (
+        <div key={item.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50">
+          <Checkbox
+            checked={item.concluido}
+            onCheckedChange={(checked) =>
+              toggleItem.mutate({ id: item.id, concluido: !!checked, etapaId })
+            }
+          />
+          <span className={`text-sm flex-1 ${item.concluido ? "line-through text-muted-foreground" : ""}`}>
+            {item.descricao}
+            {item.linha_produto && (
+              <span className="text-muted-foreground"> — {item.linha_produto}</span>
+            )}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EtapaCard({ 
   etapa, 
   onSubmit,
@@ -188,6 +218,9 @@ function EtapaCard({
               <span className="ml-1">{config.label}</span>
             </Badge>
           </div>
+
+          {/* Checklist de itens */}
+          <EtapaChecklist etapaId={etapa.id} />
 
           {/* Observações (para etapas rejeitadas) */}
           {etapa.status === "rejeitada" && etapa.observacoes && (

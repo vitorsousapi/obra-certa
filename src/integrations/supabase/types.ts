@@ -109,6 +109,44 @@ export type Database = {
           },
         ]
       }
+      etapa_itens: {
+        Row: {
+          concluido: boolean
+          created_at: string
+          descricao: string
+          etapa_id: string
+          id: string
+          linha_produto: string
+          ordem: number
+        }
+        Insert: {
+          concluido?: boolean
+          created_at?: string
+          descricao: string
+          etapa_id: string
+          id?: string
+          linha_produto?: string
+          ordem?: number
+        }
+        Update: {
+          concluido?: boolean
+          created_at?: string
+          descricao?: string
+          etapa_id?: string
+          id?: string
+          linha_produto?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_itens_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etapa_responsaveis: {
         Row: {
           created_at: string
