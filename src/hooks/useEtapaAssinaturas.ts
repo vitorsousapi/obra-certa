@@ -37,23 +37,32 @@ export function useEtapaAssinaturaByToken(token: string | undefined) {
     queryFn: async () => {
       if (!token) return null;
 
-      const { data, error } = await (supabase as any)
-        .from("etapa_assinaturas")
-        .select(`
-          *,
-          etapa:etapas(
-            id,
-            titulo,
-            descricao,
-            ordem,
-            obra:obras(id, nome, cliente_nome)
-          )
-        `)
-        .eq("token", token)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("get-etapa-by-token", {
+        body: { token },
+      });
 
       if (error) throw error;
-      return data as (EtapaAssinatura & {
+      if (data?.error) throw new Error(data.error);
+
+      // Map edge function response to the expected shape
+      return {
+        id: data.assinatura.id,
+        etapa_id: data.etapa.id,
+        token,
+        assinatura_nome: data.assinatura.assinatura_nome,
+        assinatura_data: data.assinatura.assinatura_data,
+        assinatura_ip: null,
+        assinatura_imagem_url: data.assinatura.assinatura_imagem_url || null,
+        link_enviado_em: null,
+        created_at: "",
+        etapa: {
+          id: data.etapa.id,
+          titulo: data.etapa.titulo,
+          descricao: data.etapa.descricao,
+          ordem: data.etapa.ordem,
+          obra: data.obra,
+        },
+      } as EtapaAssinatura & {
         etapa: {
           id: string;
           titulo: string;
@@ -61,7 +70,7 @@ export function useEtapaAssinaturaByToken(token: string | undefined) {
           ordem: number;
           obra: { id: string; nome: string; cliente_nome: string };
         };
-      }) | null;
+      };
     },
     enabled: !!token,
   });
