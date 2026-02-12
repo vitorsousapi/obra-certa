@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // Fetch assinatura by token
     const { data: assinatura, error: assinaturaError } = await supabase
       .from("etapa_assinaturas")
-      .select("id, etapa_id, assinatura_data, assinatura_nome")
+      .select("id, etapa_id, assinatura_data, assinatura_nome, assinatura_imagem_url")
       .eq("token", token)
       .maybeSingle();
 
@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
           id: assinatura.id,
           assinatura_data: assinatura.assinatura_data,
           assinatura_nome: assinatura.assinatura_nome,
+          assinatura_imagem_url: assinatura.assinatura_imagem_url,
         },
         etapa: {
           id: etapa.id,
