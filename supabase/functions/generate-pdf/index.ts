@@ -25,7 +25,15 @@ async function imageToBase64(url: string): Promise<string | null> {
     }
     const blob = await response.blob();
     const buffer = await blob.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const bytes = new Uint8Array(buffer);
+    // Process in chunks to avoid stack overflow on large images
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
     const mimeType = blob.type || "image/png";
     console.log("Successfully converted image to base64, type:", mimeType);
     return `data:${mimeType};base64,${base64}`;
@@ -84,7 +92,9 @@ const handler = async (req: Request): Promise<Response> => {
         ordem,
         prazo,
         descricao,
-        responsavel:profiles!etapas_responsavel_id_fkey(full_name)
+        etapa_responsaveis(
+          responsavel:profiles!etapa_responsaveis_responsavel_id_fkey(full_name)
+        )
       `)
       .eq("obra_id", obraId)
       .order("ordem", { ascending: true });
@@ -316,7 +326,11 @@ const handler = async (req: Request): Promise<Response> => {
         // Etapa details
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        doc.text(`Responsável: ${etapa.responsavel?.full_name || "Não atribuído"}`, marginLeft + 5, yPos);
+        const responsaveis = (etapa.etapa_responsaveis || [])
+          .map((er: any) => er.responsavel?.full_name)
+          .filter(Boolean);
+        const responsavelText = responsaveis.length > 0 ? responsaveis.join(", ") : "Não atribuído";
+        doc.text(`Responsável: ${responsavelText}`, marginLeft + 5, yPos);
         yPos += 6;
 
         // Anexos (images) for this etapa
