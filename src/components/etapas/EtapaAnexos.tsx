@@ -139,10 +139,10 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
     setIsUploading(true);
     
     for (const file of Array.from(files)) {
-      if (file.size > 20 * 1024 * 1024) {
+      if (file.size > 200 * 1024 * 1024) {
         toast({
           title: "Arquivo muito grande",
-          description: `${file.name} excede o limite de 20MB.`,
+          description: `${file.name} excede o limite de 200MB.`,
           variant: "destructive",
         });
         continue;
