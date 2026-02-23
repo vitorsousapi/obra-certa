@@ -19,6 +19,8 @@ interface Anexo {
   url: string;
 }
 
+type PreviewAnexo = Anexo | null;
+
 interface EtapaAnexosProps {
   etapaId: string;
   readOnly?: boolean;
@@ -43,7 +45,7 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<Anexo | null>(null);
+  const [previewAnexo, setPreviewAnexo] = useState<PreviewAnexo>(null);
 
   const { data: anexos, isLoading } = useQuery({
     queryKey: ["etapa-anexos", etapaId],
@@ -157,12 +159,10 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
   };
 
   const handleAnexoClick = (anexo: Anexo, e: React.MouseEvent) => {
-    // If it's an image, open in popup
-    if (anexo.tipo.startsWith("image/")) {
+    if (anexo.tipo.startsWith("image/") || anexo.tipo.startsWith("video/")) {
       e.preventDefault();
-      setPreviewImage(anexo);
+      setPreviewAnexo(anexo);
     }
-    // Otherwise, let the default link behavior open in new tab
   };
 
   return (
@@ -239,20 +239,29 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
         </div>
       )}
 
-      {/* Image Preview Dialog */}
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+      {/* Media Preview Dialog */}
+      <Dialog open={!!previewAnexo} onOpenChange={() => setPreviewAnexo(null)}>
         <DialogContent className="max-w-4xl w-full p-2">
-          {previewImage && (
+          {previewAnexo && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between px-2 pt-2">
-                <span className="text-sm font-medium truncate">{previewImage.nome}</span>
+                <span className="text-sm font-medium truncate">{previewAnexo.nome}</span>
               </div>
               <div className="flex items-center justify-center bg-muted rounded-md overflow-hidden">
-                <img
-                  src={previewImage.url}
-                  alt={previewImage.nome}
-                  className="max-h-[80vh] max-w-full object-contain"
-                />
+                {previewAnexo.tipo.startsWith("image/") ? (
+                  <img
+                    src={previewAnexo.url}
+                    alt={previewAnexo.nome}
+                    className="max-h-[80vh] max-w-full object-contain"
+                  />
+                ) : previewAnexo.tipo.startsWith("video/") ? (
+                  <video
+                    src={previewAnexo.url}
+                    controls
+                    autoPlay
+                    className="max-h-[80vh] max-w-full"
+                  />
+                ) : null}
               </div>
             </div>
           )}
