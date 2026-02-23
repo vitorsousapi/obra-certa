@@ -1,4 +1,4 @@
-import { Check, Clock, Send, X, Circle, Pencil, FileDown, FileSignature, AlertCircle } from "lucide-react";
+import { Check, Clock, Send, X, Circle, Pencil, FileDown, FileSignature, AlertCircle, Copy } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ interface EtapaStepperProps {
   onEtapaClick?: (etapa: EtapaWithResponsavel) => void;
   onEditClick?: (etapa: EtapaWithResponsavel) => void;
   onExportClick?: (etapa: EtapaWithResponsavel) => void;
+  onCopyClick?: (etapaId: string) => void;
   showEditButton?: boolean;
   clienteNome?: string;
   clienteTelefone?: string | null;
@@ -66,7 +67,8 @@ export function EtapaStepper({
   etapaAssinaturas,
   onEtapaClick, 
   onEditClick, 
-  onExportClick, 
+  onExportClick,
+  onCopyClick,
   showEditButton = false,
   clienteNome,
   clienteTelefone,
@@ -158,6 +160,20 @@ export function EtapaStepper({
 
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   <div className="flex items-center gap-1">
+                    {onCopyClick && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCopyClick(etapa.id);
+                        }}
+                        title="Copiar etapa"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     {onExportClick && (
                       <Button
                         variant="ghost"

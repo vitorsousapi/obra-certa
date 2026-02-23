@@ -4,7 +4,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, CheckCircle2, FileDown, Phone } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, CheckCircle2, FileDown, Phone, ClipboardPaste } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
@@ -16,6 +16,7 @@ import { PdfPreviewDialog } from "@/components/obras/PdfPreviewDialog";
 import { PdfEtapaSelector } from "@/components/obras/PdfEtapaSelector";
 import { EtapaWhatsAppActions } from "@/components/obras/EtapaWhatsAppActions";
 import { useEtapaAssinaturas } from "@/hooks/useEtapaAssinaturas";
+import { useEtapaClipboard } from "@/hooks/useEtapaClipboard";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,7 @@ export default function ObraDetalhes() {
   // Stabilize etapaIds to prevent unnecessary re-renders
   const etapaIds = useMemo(() => etapas.map((e: any) => e.id), [etapas]);
   const { data: etapaAssinaturas } = useEtapaAssinaturas(etapaIds);
+  const { clipboard, copyEtapa, pasteEtapa, isPasting } = useEtapaClipboard();
 
   const handleEditEtapa = (etapa: EtapaWithResponsavel) => {
     setEditingEtapa(etapa);
@@ -204,7 +206,23 @@ export default function ObraDetalhes() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Etapas</CardTitle>
-            <AdicionarEtapaDialog obraId={obra.id} />
+            <div className="flex gap-2">
+              {clipboard && (
+                <Button
+                  variant="outline"
+                  onClick={() => pasteEtapa(obra.id)}
+                  disabled={isPasting}
+                >
+                  {isPasting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ClipboardPaste className="h-4 w-4 mr-2" />
+                  )}
+                  Colar Etapa
+                </Button>
+              )}
+              <AdicionarEtapaDialog obraId={obra.id} />
+            </div>
           </CardHeader>
           <Separator />
           <CardContent className="pt-6">
@@ -214,6 +232,7 @@ export default function ObraDetalhes() {
               showEditButton={true}
               onEditClick={handleEditEtapa}
               onExportClick={handleExportSingleEtapa}
+              onCopyClick={copyEtapa}
               clienteNome={obra.cliente_nome}
               clienteTelefone={obraData.cliente_telefone}
               showWhatsAppActions={true}
