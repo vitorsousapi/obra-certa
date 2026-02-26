@@ -114,8 +114,29 @@ const handler = async (req: Request): Promise<Response> => {
     // Attach etapas to obra object for compatibility
     (obra as any).etapas = etapasData || [];
 
-    // Fetch anexos for all etapas
+    // Fetch itens (checklist) for all etapas
     const anexoEtapaIds = (obra as any).etapas?.map((e: any) => e.id) || [];
+    let itensByEtapa: Record<string, any[]> = {};
+    
+    if (anexoEtapaIds.length > 0) {
+      const { data: itens } = await supabase
+        .from("etapa_itens")
+        .select("id, etapa_id, descricao, linha_produto, concluido, ordem")
+        .in("etapa_id", anexoEtapaIds)
+        .order("ordem", { ascending: true });
+
+      if (itens) {
+        for (const item of itens) {
+          if (!itensByEtapa[item.etapa_id]) {
+            itensByEtapa[item.etapa_id] = [];
+          }
+          itensByEtapa[item.etapa_id].push(item);
+        }
+      }
+      console.log("Found etapa_itens:", itens?.length || 0);
+    }
+
+    // Fetch anexos for all etapas
     let anexosByEtapa: Record<string, any[]> = {};
     
     if (anexoEtapaIds.length > 0) {
@@ -332,6 +353,36 @@ const handler = async (req: Request): Promise<Response> => {
         const responsavelText = responsaveis.length > 0 ? responsaveis.join(", ") : "Não atribuído";
         doc.text(`Responsável: ${responsavelText}`, marginLeft + 5, yPos);
         yPos += 6;
+
+        if (etapa.descricao) {
+          const descLines = doc.splitTextToSize(`Descrição: ${etapa.descricao}`, contentWidth - 10);
+          checkPageBreak(descLines.length * 5 + 5);
+          doc.text(descLines, marginLeft + 5, yPos);
+          yPos += descLines.length * 5 + 2;
+        }
+
+        // Itens (checklist) for this etapa
+        const etapaItens = itensByEtapa[etapa.id] || [];
+        if (etapaItens.length > 0) {
+          checkPageBreak(10 + etapaItens.length * 6);
+          doc.setFont("helvetica", "bold");
+          doc.text("Itens:", marginLeft + 5, yPos);
+          yPos += 5;
+          doc.setFont("helvetica", "normal");
+
+          for (const item of etapaItens) {
+            checkPageBreak(8);
+            const checkMark = item.concluido ? "☑" : "☐";
+            let itemText = `${checkMark} ${item.descricao}`;
+            if (item.linha_produto) {
+              itemText += ` — ${item.linha_produto}`;
+            }
+            const itemLines = doc.splitTextToSize(itemText, contentWidth - 15);
+            doc.text(itemLines, marginLeft + 10, yPos);
+            yPos += itemLines.length * 4.5 + 2;
+          }
+          yPos += 3;
+        }
 
         // Anexos (images) for this etapa
         const etapaAnexos = anexosByEtapa[etapa.id] || [];
