@@ -372,7 +372,7 @@ const handler = async (req: Request): Promise<Response> => {
 
           for (const item of etapaItens) {
             checkPageBreak(8);
-            const checkMark = item.concluido ? "☑" : "☐";
+            const checkMark = "-";
             let itemText = `${checkMark} ${item.descricao}`;
             if (item.linha_produto) {
               itemText += ` — ${item.linha_produto}`;
