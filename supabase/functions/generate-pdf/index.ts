@@ -92,6 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
         ordem,
         prazo,
         descricao,
+        observacoes,
         etapa_responsaveis(
           responsavel:profiles!etapa_responsaveis_responsavel_id_fkey(full_name)
         )
@@ -359,6 +360,13 @@ const handler = async (req: Request): Promise<Response> => {
           checkPageBreak(descLines.length * 5 + 5);
           doc.text(descLines, marginLeft + 5, yPos);
           yPos += descLines.length * 5 + 2;
+        }
+
+        if (etapa.observacoes) {
+          const obsLines = doc.splitTextToSize(`Observações: ${etapa.observacoes}`, contentWidth - 10);
+          checkPageBreak(obsLines.length * 5 + 5);
+          doc.text(obsLines, marginLeft + 5, yPos);
+          yPos += obsLines.length * 5 + 2;
         }
 
         // Itens (checklist) for this etapa
