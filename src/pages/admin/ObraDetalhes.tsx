@@ -4,7 +4,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Pencil, Mail, Calendar, User, Send, Loader2, CheckCircle2, FileDown, Phone, ClipboardPaste } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Calendar, User, Loader2, CheckCircle2, FileDown, Phone, ClipboardPaste } from "lucide-react";
 import { useObra } from "@/hooks/useObras";
 import { useSendReport } from "@/hooks/useSendReport";
 import { ObraStatusBadge } from "@/components/obras/ObraStatusBadge";
@@ -120,18 +120,6 @@ export default function ObraDetalhes() {
             >
               <FileDown className="h-4 w-4 mr-2" />
               Visualizar PDF
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => sendReport(obra.id)}
-              disabled={isSendingReport}
-            >
-              {isSendingReport ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Enviar Relatório
             </Button>
             <Link to={`/obras/${obra.id}/editar`}>
               <Button variant="outline">
@@ -261,6 +249,8 @@ export default function ObraDetalhes() {
           obraId={obra.id}
           obraNome={obra.nome}
           selectedEtapaIds={selectedEtapaIds}
+          onSendReport={() => sendReport(obra.id)}
+          isSendingReport={isSendingReport}
         />
       </div>
     </AdminLayout>
