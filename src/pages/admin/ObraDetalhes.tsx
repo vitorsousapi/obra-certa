@@ -249,7 +249,12 @@ export default function ObraDetalhes() {
           obraId={obra.id}
           obraNome={obra.nome}
           selectedEtapaIds={selectedEtapaIds}
-          onSendReport={() => sendReport(obra.id)}
+          onSendReport={(pdfData: string) => sendReport({
+            obraId: obra.id,
+            obraNome: obra.nome,
+            clienteTelefone: obraData.cliente_telefone || "",
+            pdfData,
+          })}
           isSendingReport={isSendingReport}
         />
       </div>

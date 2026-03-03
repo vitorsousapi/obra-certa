@@ -58,7 +58,7 @@ interface PdfPreviewDialogProps {
   obraId: string;
   obraNome: string;
   selectedEtapaIds?: string[];
-  onSendReport?: () => void;
+  onSendReport?: (pdfData: string) => void;
   isSendingReport?: boolean;
 }
 
@@ -196,7 +196,7 @@ export function PdfPreviewDialog({
           {onSendReport && (
             <Button
               variant="outline"
-              onClick={onSendReport}
+              onClick={() => pdfData && onSendReport(pdfData)}
               disabled={!pdfData || isLoading || isSendingReport}
             >
               {isSendingReport ? (
@@ -204,7 +204,7 @@ export function PdfPreviewDialog({
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}
-              Enviar Relatório
+              Enviar via WhatsApp
             </Button>
           )}
           <Button onClick={handleDownload} disabled={!pdfData || isLoading}>
