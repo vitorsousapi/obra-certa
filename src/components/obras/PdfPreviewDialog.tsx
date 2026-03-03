@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, X } from "lucide-react";
+import { Loader2, Download, X, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,6 +58,8 @@ interface PdfPreviewDialogProps {
   obraId: string;
   obraNome: string;
   selectedEtapaIds?: string[];
+  onSendReport?: () => void;
+  isSendingReport?: boolean;
 }
 
 export function PdfPreviewDialog({
@@ -66,6 +68,8 @@ export function PdfPreviewDialog({
   obraId,
   obraNome,
   selectedEtapaIds,
+  onSendReport,
+  isSendingReport,
 }: PdfPreviewDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [pdfData, setPdfData] = useState<string | null>(null);
@@ -189,6 +193,20 @@ export function PdfPreviewDialog({
             <X className="h-4 w-4 mr-2" />
             Fechar
           </Button>
+          {onSendReport && (
+            <Button
+              variant="outline"
+              onClick={onSendReport}
+              disabled={!pdfData || isLoading || isSendingReport}
+            >
+              {isSendingReport ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Enviar Relatório
+            </Button>
+          )}
           <Button onClick={handleDownload} disabled={!pdfData || isLoading}>
             <Download className="h-4 w-4 mr-2" />
             Baixar PDF
