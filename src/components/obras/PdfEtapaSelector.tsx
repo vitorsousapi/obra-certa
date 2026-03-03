@@ -72,7 +72,7 @@ export function PdfEtapaSelector({
               Nenhuma etapa cadastrada.
             </p>
           ) : (
-            etapas.map((etapa) => (
+            [...etapas].sort((a, b) => a.ordem - b.ordem).map((etapa) => (
               <div
                 key={etapa.id}
                 className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
