@@ -15,11 +15,11 @@ interface GeneratePdfRequest {
   etapaIds?: string[];
 }
 
-// Max images per etapa to avoid CPU timeout
-const MAX_IMAGES_PER_ETAPA = 1;
+// Max images per etapa
+const MAX_IMAGES_PER_ETAPA = 30;
 
 // Helper to fetch image and return a compressed URL for PDF usage
-function getResizedImageUrl(url: string, width = 640): string {
+function getResizedImageUrl(url: string, width = 320): string {
   if (!url.includes("/storage/v1/object/public/")) {
     return url;
   }
@@ -30,7 +30,7 @@ function getResizedImageUrl(url: string, width = 640): string {
   );
 
   const separator = renderUrl.includes("?") ? "&" : "?";
-  return `${renderUrl}${separator}width=${width}&quality=45&format=jpeg`;
+  return `${renderUrl}${separator}width=${width}&quality=30&format=jpeg`;
 }
 
 // Helper to convert image URL to base64 with safe fallbacks
@@ -51,7 +51,7 @@ async function imageToBase64(url: string): Promise<string | null> {
       }
 
       const buffer = await response.arrayBuffer();
-      const maxBytes = index === 0 ? 2 * 1024 * 1024 : 3 * 1024 * 1024;
+      const maxBytes = index === 0 ? 500 * 1024 : 1 * 1024 * 1024;
 
       if (buffer.byteLength > maxBytes) {
         console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
@@ -219,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch images in batches of 4 to avoid overwhelming the runtime
     const imageCache: Record<string, (string | null)[]> = {};
-    const BATCH_SIZE = 1;
+    const BATCH_SIZE = 3;
     
     for (let i = 0; i < allImageFetches.length; i += BATCH_SIZE) {
       const batch = allImageFetches.slice(i, i + BATCH_SIZE);
