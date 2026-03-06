@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Paperclip, X, Image, FileText, File, Loader2, Video } from "lucide-react";
+import { Paperclip, X, Image as ImageIcon, FileText, File, Loader2, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function getFileIcon(tipo: string) {
-  if (tipo.startsWith("image/")) return <Image className="h-4 w-4" />;
+  if (tipo.startsWith("image/")) return <ImageIcon className="h-4 w-4" />;
   if (tipo.startsWith("video/")) return <Video className="h-4 w-4" />;
   if (tipo.includes("pdf")) return <FileText className="h-4 w-4" />;
   return <File className="h-4 w-4" />;
