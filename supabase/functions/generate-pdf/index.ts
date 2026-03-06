@@ -17,61 +17,68 @@ interface GeneratePdfRequest {
 // Max images per etapa to avoid CPU timeout
 const MAX_IMAGES_PER_ETAPA = 6;
 
-// Helper to fetch image and return a small JPEG thumbnail URL for the PDF
-// We use Supabase Storage image transformation to get a resized version
-function getResizedImageUrl(url: string, width = 400): string {
-  // Supabase storage transform: append ?width=X&quality=60
-  if (url.includes("/storage/v1/object/public/")) {
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}width=${width}&quality=50`;
+// Helper to fetch image and return a compressed URL for PDF usage
+function getResizedImageUrl(url: string, width = 1280): string {
+  if (!url.includes("/storage/v1/object/public/")) {
+    return url;
   }
-  return url;
+
+  const renderUrl = url.replace(
+    "/storage/v1/object/public/",
+    "/storage/v1/render/image/public/",
+  );
+
+  const separator = renderUrl.includes("?") ? "&" : "?";
+  return `${renderUrl}${separator}width=${width}&quality=65&format=jpeg`;
 }
 
-// Helper to convert image URL to base64 with size limit
+// Helper to convert image URL to base64 with safe fallbacks
 async function imageToBase64(url: string): Promise<string | null> {
-  try {
-    // First try to get a resized/compressed version
-    const resizedUrl = getResizedImageUrl(url, 400);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-    
-    const response = await fetch(resizedUrl, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      console.error("Failed to fetch image, status:", response.status);
-      return null;
-    }
-    const buffer = await response.arrayBuffer();
-    
-    // Skip images larger than 2MB even after resize
-    if (buffer.byteLength > 2 * 1024 * 1024) {
-      console.warn("Image still too large after resize, skipping:", buffer.byteLength, "bytes");
-      return null;
-    }
+  const candidates = [getResizedImageUrl(url), url];
 
-    console.log("Processing image:", buffer.byteLength, "bytes");
-    
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const end = Math.min(i + chunkSize, bytes.length);
-      const chunk = bytes.subarray(i, end);
-      for (let j = 0; j < chunk.length; j++) {
-        binary += String.fromCharCode(chunk[j]);
+  for (let index = 0; index < candidates.length; index++) {
+    const candidateUrl = candidates[index];
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const response = await fetch(candidateUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        continue;
       }
+
+      const buffer = await response.arrayBuffer();
+      const maxBytes = index === 0 ? 4 * 1024 * 1024 : 10 * 1024 * 1024;
+
+      if (buffer.byteLength > maxBytes) {
+        console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
+        continue;
+      }
+
+      console.log("Processing image:", buffer.byteLength, "bytes");
+
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const end = Math.min(i + chunkSize, bytes.length);
+        const chunk = bytes.subarray(i, end);
+        for (let j = 0; j < chunk.length; j++) {
+          binary += String.fromCharCode(chunk[j]);
+        }
+      }
+      const base64 = btoa(binary);
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      const mimeType = contentType.split(";")[0].trim();
+      return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+      console.error("Error converting image to base64:", error);
     }
-    const base64 = btoa(binary);
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    const mimeType = contentType.split(";")[0].trim();
-    return `data:${mimeType};base64,${base64}`;
-  } catch (error) {
-    console.error("Error converting image to base64:", error);
-    return null;
   }
+
+  return null;
 }
 
 // Helper to get public URL from storage path
@@ -451,7 +458,8 @@ const handler = async (req: Request): Promise<Response> => {
             }
 
             try {
-              doc.addImage(imgBase64, "JPEG", imgX, yPos, imgWidth, imgHeight);
+              const imageFormat = imgBase64.includes("data:image/png") ? "PNG" : "JPEG";
+              doc.addImage(imgBase64, imageFormat, imgX, yPos, imgWidth, imgHeight);
               imgX += imgWidth + imgGap;
               imagesInRow++;
             } catch (e) {
