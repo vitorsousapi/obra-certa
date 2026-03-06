@@ -186,6 +186,8 @@ export type Database = {
       etapas: {
         Row: {
           created_at: string
+          data_conclusao: string | null
+          data_inicio: string | null
           descricao: string | null
           id: string
           obra_id: string
@@ -199,6 +201,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_conclusao?: string | null
+          data_inicio?: string | null
           descricao?: string | null
           id?: string
           obra_id: string
@@ -212,6 +216,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_conclusao?: string | null
+          data_inicio?: string | null
           descricao?: string | null
           id?: string
           obra_id?: string
