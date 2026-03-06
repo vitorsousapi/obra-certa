@@ -14,19 +14,32 @@ interface GeneratePdfRequest {
   etapaIds?: string[];
 }
 
-// Helper to convert image URL to base64
+// Max images per etapa to avoid CPU timeout
+const MAX_IMAGES_PER_ETAPA = 6;
+
+// Helper to convert image URL to base64 with size limit
 async function imageToBase64(url: string): Promise<string | null> {
   try {
-    console.log("Fetching image from URL:", url);
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per image
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
       console.error("Failed to fetch image, status:", response.status);
       return null;
     }
-    const blob = await response.blob();
-    const buffer = await blob.arrayBuffer();
+    const buffer = await response.arrayBuffer();
+    
+    // Skip images larger than 2MB to avoid CPU issues
+    if (buffer.byteLength > 2 * 1024 * 1024) {
+      console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
+      return null;
+    }
+    
     const bytes = new Uint8Array(buffer);
-    // Process in chunks to avoid stack overflow on large images
+    // Process in chunks to avoid stack overflow
     let binary = "";
     const chunkSize = 8192;
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -34,8 +47,8 @@ async function imageToBase64(url: string): Promise<string | null> {
       binary += String.fromCharCode(...chunk);
     }
     const base64 = btoa(binary);
-    const mimeType = blob.type || "image/png";
-    console.log("Successfully converted image to base64, type:", mimeType);
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    const mimeType = contentType.split(";")[0].trim();
     return `data:${mimeType};base64,${base64}`;
   } catch (error) {
     console.error("Error converting image to base64:", error);
@@ -91,6 +104,8 @@ const handler = async (req: Request): Promise<Response> => {
         status,
         ordem,
         prazo,
+        data_inicio,
+        data_conclusao,
         descricao,
         observacoes,
         etapa_responsaveis(
@@ -100,7 +115,6 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("obra_id", obraId)
       .order("ordem", { ascending: true });
 
-    // Apply filter if specific etapa IDs are provided
     if (etapaIds && etapaIds.length > 0) {
       etapasQuery = etapasQuery.in("id", etapaIds);
       console.log("Filtering etapas by IDs:", etapaIds);
@@ -112,57 +126,43 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error fetching etapas:", etapasError);
     }
 
-    // Attach etapas to obra object for compatibility
     (obra as any).etapas = etapasData || [];
 
-    // Fetch itens (checklist) for all etapas
+    // Fetch itens and anexos in parallel
     const anexoEtapaIds = (obra as any).etapas?.map((e: any) => e.id) || [];
     let itensByEtapa: Record<string, any[]> = {};
-    
-    if (anexoEtapaIds.length > 0) {
-      const { data: itens } = await supabase
-        .from("etapa_itens")
-        .select("id, etapa_id, descricao, linha_produto, concluido, ordem")
-        .in("etapa_id", anexoEtapaIds)
-        .order("ordem", { ascending: true });
+    let anexosByEtapa: Record<string, any[]> = {};
 
-      if (itens) {
-        for (const item of itens) {
-          if (!itensByEtapa[item.etapa_id]) {
-            itensByEtapa[item.etapa_id] = [];
-          }
+    if (anexoEtapaIds.length > 0) {
+      const [itensResult, anexosResult] = await Promise.all([
+        supabase
+          .from("etapa_itens")
+          .select("id, etapa_id, descricao, linha_produto, concluido, ordem")
+          .in("etapa_id", anexoEtapaIds)
+          .order("ordem", { ascending: true }),
+        supabase
+          .from("etapa_anexos")
+          .select("id, etapa_id, nome, tipo, url, storage_path")
+          .in("etapa_id", anexoEtapaIds)
+          .order("created_at", { ascending: true }),
+      ]);
+
+      if (itensResult.data) {
+        for (const item of itensResult.data) {
+          if (!itensByEtapa[item.etapa_id]) itensByEtapa[item.etapa_id] = [];
           itensByEtapa[item.etapa_id].push(item);
         }
       }
-      console.log("Found etapa_itens:", itens?.length || 0);
-    }
+      console.log("Found etapa_itens:", itensResult.data?.length || 0);
 
-    // Fetch anexos for all etapas
-    let anexosByEtapa: Record<string, any[]> = {};
-    
-    if (anexoEtapaIds.length > 0) {
-      const { data: anexos } = await supabase
-        .from("etapa_anexos")
-        .select("id, etapa_id, nome, tipo, url, storage_path")
-        .in("etapa_id", anexoEtapaIds)
-        .order("created_at", { ascending: true });
-
-      console.log("Found anexos:", anexos?.length || 0);
-
-      if (anexos) {
-        for (const anexo of anexos) {
-          if (!anexosByEtapa[anexo.etapa_id]) {
-            anexosByEtapa[anexo.etapa_id] = [];
-          }
-          // Generate fresh public URL from storage path with correct bucket name
+      if (anexosResult.data) {
+        for (const anexo of anexosResult.data) {
+          if (!anexosByEtapa[anexo.etapa_id]) anexosByEtapa[anexo.etapa_id] = [];
           const publicUrl = getPublicStorageUrl(supabaseUrl, "etapa-anexos", anexo.storage_path);
-          console.log("Generated public URL for anexo:", publicUrl);
-          anexosByEtapa[anexo.etapa_id].push({
-            ...anexo,
-            url: publicUrl
-          });
+          anexosByEtapa[anexo.etapa_id].push({ ...anexo, url: publicUrl });
         }
       }
+      console.log("Found anexos:", anexosResult.data?.length || 0);
     }
 
     const etapas = obra.etapas?.sort((a: any, b: any) => a.ordem - b.ordem) || [];
@@ -186,6 +186,42 @@ const handler = async (req: Request): Promise<Response> => {
       rejeitada: "Rejeitada",
     };
 
+    // Pre-fetch ALL images in parallel (limited per etapa) before PDF generation
+    const allImageFetches: { etapaId: string; url: string; index: number }[] = [];
+    for (const etapa of etapas) {
+      const etapaAnexos = anexosByEtapa[etapa.id] || [];
+      const imageAnexos = etapaAnexos
+        .filter((a: any) => a.tipo?.startsWith("image/"))
+        .slice(0, MAX_IMAGES_PER_ETAPA);
+      
+      imageAnexos.forEach((anexo: any, idx: number) => {
+        allImageFetches.push({ etapaId: etapa.id, url: anexo.url, index: idx });
+      });
+    }
+
+    console.log("Pre-fetching", allImageFetches.length, "images in parallel");
+
+    // Fetch images in batches of 4 to avoid overwhelming the runtime
+    const imageCache: Record<string, (string | null)[]> = {};
+    const BATCH_SIZE = 4;
+    
+    for (let i = 0; i < allImageFetches.length; i += BATCH_SIZE) {
+      const batch = allImageFetches.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (item) => {
+          const base64 = await imageToBase64(item.url);
+          return { ...item, base64 };
+        })
+      );
+      
+      for (const result of results) {
+        if (!imageCache[result.etapaId]) imageCache[result.etapaId] = [];
+        imageCache[result.etapaId][result.index] = result.base64;
+      }
+    }
+
+    console.log("All images pre-fetched, generating PDF");
+
     // Create PDF
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -195,7 +231,6 @@ const handler = async (req: Request): Promise<Response> => {
     const contentWidth = pageWidth - marginLeft - marginRight;
     let yPos = 20;
 
-    // Helper to check page break
     const checkPageBreak = (neededSpace: number) => {
       if (yPos + neededSpace > pageHeight - 20) {
         doc.addPage();
@@ -205,44 +240,31 @@ const handler = async (req: Request): Promise<Response> => {
       return false;
     };
 
-    // Add logo if provided (can be base64 or URL)
+    // Add logo if provided
     if (logoUrl) {
       try {
         let logoBase64 = logoUrl;
         let imageFormat = "PNG";
-        
-        // If it's not already base64, try to fetch it
+
         if (!logoUrl.startsWith("data:")) {
           const fetchedLogo = await imageToBase64(logoUrl);
-          if (fetchedLogo) {
-            logoBase64 = fetchedLogo;
-          } else {
-            console.error("Failed to fetch logo from URL:", logoUrl);
-            logoBase64 = "";
-          }
+          if (fetchedLogo) logoBase64 = fetchedLogo;
+          else logoBase64 = "";
         }
-        
+
         if (logoBase64 && logoBase64.startsWith("data:image/")) {
-          // Extract format from data URL
           if (logoBase64.includes("data:image/jpeg") || logoBase64.includes("data:image/jpg")) {
             imageFormat = "JPEG";
-          } else if (logoBase64.includes("data:image/png")) {
-            imageFormat = "PNG";
           }
-          
-          // Extract only the base64 part for jsPDF
           const base64Data = logoBase64.split(",")[1];
           if (base64Data && base64Data.length > 100) {
             doc.addImage(logoBase64, imageFormat, marginLeft, yPos, 40, 15);
             yPos += 20;
-            console.log("Logo added successfully, format:", imageFormat);
-          } else {
-            console.error("Logo base64 data too short or invalid");
+            console.log("Logo added successfully");
           }
         }
       } catch (e) {
         console.error("Error adding logo:", e);
-        // Continue without logo
       }
     }
 
@@ -293,7 +315,6 @@ const handler = async (req: Request): Promise<Response> => {
     doc.text(`Progresso: ${progresso}%`, marginLeft, yPos);
     yPos += 8;
 
-    // Progress bar
     doc.setFillColor(229, 231, 235);
     doc.rect(marginLeft, yPos, contentWidth, 8, "F");
     doc.setFillColor(34, 197, 94);
@@ -321,14 +342,13 @@ const handler = async (req: Request): Promise<Response> => {
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.text(`${etapa.ordem}. ${etapa.titulo}`, marginLeft + 3, yPos + 8);
-        
+
         // Status badge
         doc.setFontSize(8);
         const statusText = etapaStatusLabels[etapa.status] || etapa.status;
         const statusWidth = doc.getTextWidth(statusText) + 6;
         const statusX = marginLeft + contentWidth - statusWidth - 3;
-        
-        // Status color
+
         const statusColors: Record<string, [number, number, number]> = {
           pendente: [156, 163, 175],
           em_andamento: [59, 130, 246],
@@ -342,7 +362,7 @@ const handler = async (req: Request): Promise<Response> => {
         doc.setTextColor(255, 255, 255);
         doc.text(statusText, statusX + 3, yPos + 7.5);
         doc.setTextColor(0, 0, 0);
-        
+
         yPos += 15;
 
         // Etapa details
@@ -369,7 +389,7 @@ const handler = async (req: Request): Promise<Response> => {
           yPos += obsLines.length * 5 + 2;
         }
 
-        // Itens (checklist) for this etapa
+        // Itens (checklist)
         const etapaItens = itensByEtapa[etapa.id] || [];
         if (etapaItens.length > 0) {
           checkPageBreak(10 + etapaItens.length * 6);
@@ -380,11 +400,8 @@ const handler = async (req: Request): Promise<Response> => {
 
           for (const item of etapaItens) {
             checkPageBreak(8);
-            const checkMark = "-";
-            let itemText = `${checkMark} ${item.descricao}`;
-            if (item.linha_produto) {
-              itemText += ` — ${item.linha_produto}`;
-            }
+            let itemText = `- ${item.descricao}`;
+            if (item.linha_produto) itemText += ` — ${item.linha_produto}`;
             const itemLines = doc.splitTextToSize(itemText, contentWidth - 15);
             doc.text(itemLines, marginLeft + 10, yPos);
             yPos += itemLines.length * 4.5 + 2;
@@ -392,24 +409,22 @@ const handler = async (req: Request): Promise<Response> => {
           yPos += 3;
         }
 
-        // Anexos (images) for this etapa
-        const etapaAnexos = anexosByEtapa[etapa.id] || [];
-        const imageAnexos = etapaAnexos.filter((a: any) => a.tipo?.startsWith("image/"));
+        // Anexos (images) - use pre-fetched cache
+        const cachedImages = (imageCache[etapa.id] || []).filter(Boolean) as string[];
 
-        if (imageAnexos.length > 0) {
+        if (cachedImages.length > 0) {
           checkPageBreak(50);
           doc.setFont("helvetica", "bold");
           doc.text("Fotos:", marginLeft + 5, yPos);
           yPos += 5;
 
-          // Display images in a grid (3 per row)
           let imgX = marginLeft + 5;
           const imgWidth = 50;
           const imgHeight = 35;
           const imgGap = 5;
           let imagesInRow = 0;
 
-          for (const anexo of imageAnexos) {
+          for (const imgBase64 of cachedImages) {
             if (imagesInRow >= 3) {
               imagesInRow = 0;
               imgX = marginLeft + 5;
@@ -417,15 +432,12 @@ const handler = async (req: Request): Promise<Response> => {
               checkPageBreak(imgHeight + 10);
             }
 
-            const imgBase64 = await imageToBase64(anexo.url);
-            if (imgBase64) {
-              try {
-                doc.addImage(imgBase64, "JPEG", imgX, yPos, imgWidth, imgHeight);
-                imgX += imgWidth + imgGap;
-                imagesInRow++;
-              } catch (e) {
-                console.error("Error adding image:", e);
-              }
+            try {
+              doc.addImage(imgBase64, "JPEG", imgX, yPos, imgWidth, imgHeight);
+              imgX += imgWidth + imgGap;
+              imagesInRow++;
+            } catch (e) {
+              console.error("Error adding image:", e);
             }
           }
 
@@ -434,7 +446,7 @@ const handler = async (req: Request): Promise<Response> => {
           yPos += 5;
         }
 
-        // Separator line
+        // Separator
         doc.setDrawColor(229, 231, 235);
         doc.line(marginLeft, yPos, marginLeft + contentWidth, yPos);
         yPos += 8;
@@ -484,7 +496,6 @@ const handler = async (req: Request): Promise<Response> => {
       doc.setTextColor(0, 0, 0);
       yPos += 20;
 
-      // Add signature image
       if (obra.assinatura_imagem_url) {
         const sigBase64 = await imageToBase64(obra.assinatura_imagem_url);
         if (sigBase64) {
@@ -503,7 +514,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Footer on each page
+    // Footer
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -517,14 +528,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate PDF as base64
     const pdfBase64 = doc.output("datauristring");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         pdf: pdfBase64,
-        filename: `relatorio-${obra.nome.toLowerCase().replace(/\s+/g, "-")}.pdf`
+        filename: `relatorio-${obra.nome.toLowerCase().replace(/\s+/g, "-")}.pdf`,
       }),
       {
         status: 200,
