@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
@@ -60,7 +59,17 @@ async function imageToBase64(url: string): Promise<string | null> {
 
       console.log("Processing image:", buffer.byteLength, "bytes");
 
-      const base64 = encodeBase64(new Uint8Array(buffer));
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const end = Math.min(i + chunkSize, bytes.length);
+        const chunk = bytes.subarray(i, end);
+        for (let j = 0; j < chunk.length; j++) {
+          binary += String.fromCharCode(chunk[j]);
+        }
+      }
+      const base64 = btoa(binary);
       const contentType = response.headers.get("content-type") || "image/jpeg";
       const mimeType = contentType.split(";")[0].trim();
       return `data:${mimeType};base64,${base64}`;
