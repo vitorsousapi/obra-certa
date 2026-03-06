@@ -21,7 +21,7 @@ const MAX_IMAGES_PER_ETAPA = 6;
 async function imageToBase64(url: string): Promise<string | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per image
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout per image
     
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -32,19 +32,24 @@ async function imageToBase64(url: string): Promise<string | null> {
     }
     const buffer = await response.arrayBuffer();
     
-    // Skip images larger than 2MB to avoid CPU issues
-    if (buffer.byteLength > 2 * 1024 * 1024) {
+    // Skip images larger than 10MB to avoid CPU issues
+    if (buffer.byteLength > 10 * 1024 * 1024) {
       console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
       return null;
     }
+
+    console.log("Processing image:", buffer.byteLength, "bytes");
     
     const bytes = new Uint8Array(buffer);
     // Process in chunks to avoid stack overflow
     let binary = "";
     const chunkSize = 8192;
     for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, i + chunkSize);
-      binary += String.fromCharCode(...chunk);
+      const end = Math.min(i + chunkSize, bytes.length);
+      const chunk = bytes.subarray(i, end);
+      for (let j = 0; j < chunk.length; j++) {
+        binary += String.fromCharCode(chunk[j]);
+      }
     }
     const base64 = btoa(binary);
     const contentType = response.headers.get("content-type") || "image/jpeg";
