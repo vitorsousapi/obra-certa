@@ -30,7 +30,7 @@ function getResizedImageUrl(url: string, width = 320): string {
   );
 
   const separator = renderUrl.includes("?") ? "&" : "?";
-  return `${renderUrl}${separator}width=${width}&quality=45&format=jpeg`;
+  return `${renderUrl}${separator}width=${width}&quality=30&format=jpeg`;
 }
 
 // Helper to convert image URL to base64 with safe fallbacks
