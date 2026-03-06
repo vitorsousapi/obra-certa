@@ -177,7 +177,7 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
               multiple
               className="hidden"
               onChange={handleFileChange}
-              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             />
             <Button
               type="button"
