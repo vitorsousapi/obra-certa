@@ -256,28 +256,16 @@ const handler = async (req: Request): Promise<Response> => {
       return false;
     };
 
-    // Add logo if provided
-    if (logoUrl) {
+    // Add logo - use fixed public URL from storage
+    {
       try {
-        let logoBase64 = logoUrl;
-        let imageFormat = "PNG";
-
-        if (!logoUrl.startsWith("data:")) {
-          const fetchedLogo = await imageToBase64(logoUrl);
-          if (fetchedLogo) logoBase64 = fetchedLogo;
-          else logoBase64 = "";
-        }
-
-        if (logoBase64 && logoBase64.startsWith("data:image/")) {
-          if (logoBase64.includes("data:image/jpeg") || logoBase64.includes("data:image/jpg")) {
-            imageFormat = "JPEG";
-          }
-          const base64Data = logoBase64.split(",")[1];
-          if (base64Data && base64Data.length > 100) {
-            doc.addImage(logoBase64, imageFormat, marginLeft, yPos, 40, 15);
-            yPos += 20;
-            console.log("Logo added successfully");
-          }
+        const fixedLogoUrl = `${supabaseUrl}/storage/v1/object/public/etapa-anexos/logo-tavitrum.png`;
+        const fetchedLogo = await imageToBase64(fixedLogoUrl);
+        if (fetchedLogo && fetchedLogo.startsWith("data:image/")) {
+          const imageFormat = fetchedLogo.includes("data:image/jpeg") ? "JPEG" : "PNG";
+          doc.addImage(fetchedLogo, imageFormat, marginLeft, yPos, 40, 15);
+          yPos += 20;
+          console.log("Logo added successfully");
         }
       } catch (e) {
         console.error("Error adding logo:", e);
