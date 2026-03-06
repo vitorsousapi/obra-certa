@@ -15,7 +15,7 @@ interface GeneratePdfRequest {
 }
 
 // Max images per etapa to avoid CPU timeout
-const MAX_IMAGES_PER_ETAPA = 6;
+const MAX_IMAGES_PER_ETAPA = 10;
 
 // Helper to convert image URL to base64 with size limit
 async function imageToBase64(url: string): Promise<string | null> {
