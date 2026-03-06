@@ -18,9 +18,23 @@ export function useSendReport() {
         throw new Error("Telefone do cliente não cadastrado. Edite a obra e adicione o telefone.");
       }
 
-      // Convert base64 data URL to blob
-      const response = await fetch(pdfData);
-      const blob = await response.blob();
+      // Convert base64 data URL to blob without using fetch on large data URLs
+      let blob: Blob;
+      try {
+        const [meta, base64Data] = pdfData.split(",");
+        const mimeMatch = meta.match(/^data:(.*?);/);
+        const mimeType = mimeMatch?.[1] || "application/pdf";
+
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { type: mimeType });
+      } catch (e) {
+        console.error("Error converting PDF data:", e);
+        throw new Error("Erro ao processar o PDF para envio.");
+      }
 
       // Upload PDF to storage
       const filename = `relatorio-${obraId}-${Date.now()}.pdf`;
