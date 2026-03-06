@@ -16,7 +16,7 @@ interface GeneratePdfRequest {
 }
 
 // Max images per etapa to avoid CPU timeout
-const MAX_IMAGES_PER_ETAPA = 4;
+const MAX_IMAGES_PER_ETAPA = 1;
 
 // Helper to fetch image and return a compressed URL for PDF usage
 function getResizedImageUrl(url: string, width = 640): string {
@@ -219,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch images in batches of 4 to avoid overwhelming the runtime
     const imageCache: Record<string, (string | null)[]> = {};
-    const BATCH_SIZE = 2;
+    const BATCH_SIZE = 1;
     
     for (let i = 0; i < allImageFetches.length; i += BATCH_SIZE) {
       const batch = allImageFetches.slice(i, i + BATCH_SIZE);
