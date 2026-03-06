@@ -121,7 +121,7 @@ export function EtapaStepper({
 
   return (
     <div className="relative">
-      {etapas.map((etapa, index) => {
+      {[...etapas].sort((a, b) => a.ordem - b.ordem).map((etapa, index) => {
         const isLast = index === etapas.length - 1;
         const responsaveis = getResponsaveis(etapa);
         
