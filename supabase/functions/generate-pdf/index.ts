@@ -15,15 +15,29 @@ interface GeneratePdfRequest {
 }
 
 // Max images per etapa to avoid CPU timeout
-const MAX_IMAGES_PER_ETAPA = 10;
+const MAX_IMAGES_PER_ETAPA = 6;
+
+// Helper to fetch image and return a small JPEG thumbnail URL for the PDF
+// We use Supabase Storage image transformation to get a resized version
+function getResizedImageUrl(url: string, width = 400): string {
+  // Supabase storage transform: append ?width=X&quality=60
+  if (url.includes("/storage/v1/object/public/")) {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}width=${width}&quality=50`;
+  }
+  return url;
+}
 
 // Helper to convert image URL to base64 with size limit
 async function imageToBase64(url: string): Promise<string | null> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout per image
+    // First try to get a resized/compressed version
+    const resizedUrl = getResizedImageUrl(url, 400);
     
-    const response = await fetch(url, { signal: controller.signal });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    
+    const response = await fetch(resizedUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
     
     if (!response.ok) {
@@ -32,16 +46,15 @@ async function imageToBase64(url: string): Promise<string | null> {
     }
     const buffer = await response.arrayBuffer();
     
-    // Skip images larger than 10MB to avoid CPU issues
-    if (buffer.byteLength > 10 * 1024 * 1024) {
-      console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
+    // Skip images larger than 2MB even after resize
+    if (buffer.byteLength > 2 * 1024 * 1024) {
+      console.warn("Image still too large after resize, skipping:", buffer.byteLength, "bytes");
       return null;
     }
 
     console.log("Processing image:", buffer.byteLength, "bytes");
     
     const bytes = new Uint8Array(buffer);
-    // Process in chunks to avoid stack overflow
     let binary = "";
     const chunkSize = 8192;
     for (let i = 0; i < bytes.length; i += chunkSize) {
