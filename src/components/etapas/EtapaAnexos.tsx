@@ -36,7 +36,7 @@ function getFileIcon(tipo: string) {
   if (tipo.startsWith("image/")) return <ImageIcon className="h-4 w-4" />;
   if (tipo.startsWith("video/")) return <Video className="h-4 w-4" />;
   if (tipo.includes("pdf")) return <FileText className="h-4 w-4" />;
-  return <File className="h-4 w-4" />;
+  return <FileIcon className="h-4 w-4" />;
 }
 
 export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
