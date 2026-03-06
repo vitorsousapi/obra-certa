@@ -30,6 +30,7 @@ import { useColaboradores } from "@/hooks/useColaboradores";
 const etapaSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório"),
   descricao: z.string().optional(),
+  data_inicio: z.string().optional(),
   prazo: z.string().optional(),
 });
 
@@ -59,6 +60,7 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
     defaultValues: {
       titulo: "",
       descricao: "",
+      data_inicio: "",
       prazo: "",
     },
   });
@@ -89,6 +91,7 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
         obra_id: obraId,
         titulo: data.titulo,
         descricao: data.descricao || null,
+        data_inicio: data.data_inicio || null,
         prazo: data.prazo || null,
       });
 
@@ -169,19 +172,35 @@ export function AdicionarEtapaDialog({ obraId, trigger }: AdicionarEtapaDialogPr
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="prazo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prazo</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="data_inicio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Início</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="prazo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Término (Prazo)</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Itens / Checklist */}
             <div>
