@@ -232,11 +232,9 @@ function EtapaCard({
           </div>
 
           {/* Anexos */}
-          {showActions && (
-            <div className="border rounded-md p-3">
-              <EtapaAnexos etapaId={etapa.id} readOnly />
-            </div>
-          )}
+          <div className="border rounded-md p-3">
+            <EtapaAnexos etapaId={etapa.id} readOnly />
+          </div>
 
           {/* Observações do colaborador */}
           {etapa.observacoes && showActions && (
