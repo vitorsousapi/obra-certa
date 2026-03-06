@@ -134,6 +134,60 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
     },
   });
 
+  const compressImage = (file: File, maxWidth = 1920, quality = 0.7): Promise<File> => {
+    return new Promise((resolve) => {
+      // Only compress images, not other file types
+      if (!file.type.startsWith("image/") || file.type === "image/gif") {
+        resolve(file);
+        return;
+      }
+
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        
+        let { width, height } = img;
+        
+        // Only resize if larger than maxWidth
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              // Use compressed version
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: file.lastModified,
+              });
+              console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`);
+              resolve(compressedFile);
+            } else {
+              // Original is smaller, keep it
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file); // fallback to original
+      };
+      img.src = url;
+    });
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -149,7 +203,9 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
         });
         continue;
       }
-      await uploadMutation.mutateAsync(file);
+      // Compress images before upload
+      const processedFile = await compressImage(file);
+      await uploadMutation.mutateAsync(processedFile);
     }
 
     setIsUploading(false);
