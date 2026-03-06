@@ -30,7 +30,7 @@ function getResizedImageUrl(url: string, width = 320): string {
   );
 
   const separator = renderUrl.includes("?") ? "&" : "?";
-  return `${renderUrl}${separator}width=${width}&quality=30&format=jpeg`;
+  return `${renderUrl}${separator}width=${width}&quality=30`;
 }
 
 // Helper to convert image URL to base64 with safe fallbacks
@@ -51,7 +51,7 @@ async function imageToBase64(url: string): Promise<string | null> {
       }
 
       const buffer = await response.arrayBuffer();
-      const maxBytes = index === 0 ? 500 * 1024 : 1 * 1024 * 1024;
+      const maxBytes = index === 0 ? 1 * 1024 * 1024 : 3 * 1024 * 1024;
 
       if (buffer.byteLength > maxBytes) {
         console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
