@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
@@ -15,10 +16,10 @@ interface GeneratePdfRequest {
 }
 
 // Max images per etapa to avoid CPU timeout
-const MAX_IMAGES_PER_ETAPA = 6;
+const MAX_IMAGES_PER_ETAPA = 1;
 
 // Helper to fetch image and return a compressed URL for PDF usage
-function getResizedImageUrl(url: string, width = 1280): string {
+function getResizedImageUrl(url: string, width = 640): string {
   if (!url.includes("/storage/v1/object/public/")) {
     return url;
   }
@@ -29,7 +30,7 @@ function getResizedImageUrl(url: string, width = 1280): string {
   );
 
   const separator = renderUrl.includes("?") ? "&" : "?";
-  return `${renderUrl}${separator}width=${width}&quality=65&format=jpeg`;
+  return `${renderUrl}${separator}width=${width}&quality=45&format=jpeg`;
 }
 
 // Helper to convert image URL to base64 with safe fallbacks
@@ -50,7 +51,7 @@ async function imageToBase64(url: string): Promise<string | null> {
       }
 
       const buffer = await response.arrayBuffer();
-      const maxBytes = index === 0 ? 4 * 1024 * 1024 : 10 * 1024 * 1024;
+      const maxBytes = index === 0 ? 2 * 1024 * 1024 : 3 * 1024 * 1024;
 
       if (buffer.byteLength > maxBytes) {
         console.warn("Image too large, skipping:", buffer.byteLength, "bytes");
@@ -59,17 +60,7 @@ async function imageToBase64(url: string): Promise<string | null> {
 
       console.log("Processing image:", buffer.byteLength, "bytes");
 
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const end = Math.min(i + chunkSize, bytes.length);
-        const chunk = bytes.subarray(i, end);
-        for (let j = 0; j < chunk.length; j++) {
-          binary += String.fromCharCode(chunk[j]);
-        }
-      }
-      const base64 = btoa(binary);
+      const base64 = encode(buffer);
       const contentType = response.headers.get("content-type") || "image/jpeg";
       const mimeType = contentType.split(";")[0].trim();
       return `data:${mimeType};base64,${base64}`;
@@ -228,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Fetch images in batches of 4 to avoid overwhelming the runtime
     const imageCache: Record<string, (string | null)[]> = {};
-    const BATCH_SIZE = 4;
+    const BATCH_SIZE = 1;
     
     for (let i = 0; i < allImageFetches.length; i += BATCH_SIZE) {
       const batch = allImageFetches.slice(i, i + BATCH_SIZE);

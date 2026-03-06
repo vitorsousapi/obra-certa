@@ -83,18 +83,11 @@ export function PdfPreviewDialog({
     setError(null);
 
     try {
-      // Get logo as base64 - but don't fail if it doesn't work
-      let logoBase64: string | null = null;
-      try {
-        const logoUrl = `${window.location.origin}/images/logo-tavitrum.png`;
-        logoBase64 = await imageToBase64(logoUrl);
-      } catch (e) {
-        console.warn("Could not load logo:", e);
-      }
+      const logoUrl = `${window.location.origin}/images/logo-tavitrum.png`;
 
       console.log("Calling generate-pdf with obraId:", obraId, "etapaIds:", selectedEtapaIds);
       const { data, error: invokeError } = await supabase.functions.invoke("generate-pdf", {
-        body: { obraId, logoUrl: logoBase64, etapaIds: selectedEtapaIds },
+        body: { obraId, logoUrl, etapaIds: selectedEtapaIds },
       });
 
       console.log("Response from generate-pdf:", { data: !!data, error: invokeError });
