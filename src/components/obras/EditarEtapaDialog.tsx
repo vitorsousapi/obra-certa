@@ -50,6 +50,7 @@ type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
 const etapaSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório"),
   descricao: z.string().optional(),
+  data_inicio: z.string().optional(),
   prazo: z.string().optional(),
   status: z.enum(["pendente", "em_andamento", "submetida", "aprovada", "rejeitada"]),
   observacoes: z.string().optional(),
@@ -68,7 +69,9 @@ interface EtapaWithResponsavel {
   titulo: string;
   descricao: string | null;
   ordem: number;
+  data_inicio: string | null;
   prazo: string | null;
+  data_conclusao: string | null;
   status: EtapaStatus;
   observacoes: string | null;
   obra_id?: string;
@@ -115,6 +118,7 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
     defaultValues: {
       titulo: "",
       descricao: "",
+      data_inicio: "",
       prazo: "",
       status: "pendente",
       observacoes: "",
@@ -126,6 +130,7 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
       form.reset({
         titulo: etapa.titulo,
         descricao: etapa.descricao || "",
+        data_inicio: etapa.data_inicio || "",
         prazo: etapa.prazo || "",
         status: etapa.status,
         observacoes: etapa.observacoes || "",
@@ -180,6 +185,7 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
         id: etapa.id,
         titulo: data.titulo,
         descricao: data.descricao || null,
+        data_inicio: data.data_inicio || null,
         prazo: data.prazo || null,
         status: data.status,
         observacoes: data.observacoes || null,
@@ -260,10 +266,24 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="data_inicio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Início</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="prazo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prazo</FormLabel>
+                    <FormLabel>Data de Término (Prazo)</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>

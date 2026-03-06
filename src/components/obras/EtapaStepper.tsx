@@ -22,7 +22,9 @@ export interface EtapaWithResponsavel {
   titulo: string;
   descricao: string | null;
   ordem: number;
+  data_inicio: string | null;
   prazo: string | null;
+  data_conclusao: string | null;
   status: EtapaStatus;
   observacoes: string | null;
   obra_id?: string;
@@ -203,9 +205,19 @@ export function EtapaStepper({
                       </Button>
                     )}
                   </div>
+                  {etapa.data_inicio && (
+                    <span className="text-xs text-muted-foreground">
+                      Início: {format(new Date(etapa.data_inicio), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  )}
                   {etapa.prazo && (
                     <span className="text-xs text-muted-foreground">
                       Prazo: {format(new Date(etapa.prazo), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  )}
+                  {etapa.data_conclusao && (
+                    <span className="text-xs text-green-600">
+                      Concluída: {format(new Date(etapa.data_conclusao), "dd/MM/yyyy", { locale: ptBR })}
                     </span>
                   )}
                   {responsaveis.length > 0 && (
