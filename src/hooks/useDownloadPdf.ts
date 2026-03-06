@@ -60,11 +60,10 @@ export function useDownloadPdf() {
 
   return useMutation({
     mutationFn: async ({ obraId, logoUrl }: DownloadPdfParams) => {
-      // Get logo as base64 if not provided
-      const logoBase64 = logoUrl || await getLogoBase64();
+      const safeLogoUrl = logoUrl || `${window.location.origin}/images/logo-tavitrum.png`;
       
       const { data, error } = await supabase.functions.invoke("generate-pdf", {
-        body: { obraId, logoUrl: logoBase64 },
+        body: { obraId, logoUrl: safeLogoUrl },
       });
 
       if (error) {
