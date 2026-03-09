@@ -422,31 +422,34 @@ const handler = async (req: Request): Promise<Response> => {
           doc.text("Fotos:", marginLeft + 5, yPos);
           yPos += 5;
 
-          let imgX = marginLeft + 5;
-          const imgWidth = 50;
-          const imgHeight = 35;
-          const imgGap = 5;
-          let imagesInRow = 0;
+          const maxImgWidth = contentWidth - 10;
+          const maxImgHeight = 120;
 
           for (const imgBase64 of cachedImages) {
-            if (imagesInRow >= 3) {
-              imagesInRow = 0;
-              imgX = marginLeft + 5;
-              yPos += imgHeight + imgGap;
-              checkPageBreak(imgHeight + 10);
-            }
-
             try {
               const imageFormat = imgBase64.includes("data:image/png") ? "PNG" : "JPEG";
-              doc.addImage(imgBase64, imageFormat, imgX, yPos, imgWidth, imgHeight);
-              imgX += imgWidth + imgGap;
-              imagesInRow++;
+              const imgProps = doc.getImageProperties(imgBase64);
+              const origW = imgProps.width;
+              const origH = imgProps.height;
+
+              // Scale to fit within max bounds while preserving aspect ratio
+              let drawW = maxImgWidth;
+              let drawH = (origH / origW) * drawW;
+
+              if (drawH > maxImgHeight) {
+                drawH = maxImgHeight;
+                drawW = (origW / origH) * drawH;
+              }
+
+              checkPageBreak(drawH + 8);
+              doc.addImage(imgBase64, imageFormat, marginLeft + 5, yPos, drawW, drawH);
+              yPos += drawH + 5;
             } catch (e) {
               console.error("Error adding image:", e);
             }
           }
 
-          yPos += imgHeight + 10;
+          yPos += 5;
         } else {
           yPos += 5;
         }
