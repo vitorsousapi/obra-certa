@@ -21,6 +21,7 @@ import {
   Users,
   Settings,
   LogOut,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoHubtav from "@/assets/logo-hubtav.png";

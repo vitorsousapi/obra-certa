@@ -16,6 +16,7 @@ import ObraDetalhes from "./pages/admin/ObraDetalhes";
 import Colaboradores from "./pages/admin/Colaboradores";
 import Aprovacoes from "./pages/admin/Aprovacoes";
 import Configuracoes from "./pages/admin/Configuracoes";
+import Calendario from "./pages/admin/Calendario";
 import ColaboradorAtividades from "./pages/colaborador/Atividades";
 import AssinarEtapa from "./pages/AssinarEtapa";
 import VisualizarEtapa from "./pages/VisualizarEtapa";
