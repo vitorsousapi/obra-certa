@@ -192,6 +192,9 @@ function EtapaCard({
 }) {
   const config = statusConfig[etapa.status];
   const isOverdue = etapa.prazo && isPast(new Date(etapa.prazo)) && !["aprovada", "submetida"].includes(etapa.status);
+  const { data: itens } = useEtapaItens(etapa.id);
+  const hasItens = itens && itens.length > 0;
+  const allItensConcluidos = hasItens ? itens.every((item) => item.concluido) : true;
   
   return (
     <Card className={isOverdue ? "border-destructive" : ""}>
