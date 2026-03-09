@@ -192,6 +192,9 @@ function EtapaCard({
 }) {
   const config = statusConfig[etapa.status];
   const isOverdue = etapa.prazo && isPast(new Date(etapa.prazo)) && !["aprovada", "submetida"].includes(etapa.status);
+  const { data: itens } = useEtapaItens(etapa.id);
+  const hasItens = itens && itens.length > 0;
+  const allItensConcluidos = hasItens ? itens.every((item) => item.concluido) : true;
   
   return (
     <Card className={isOverdue ? "border-destructive" : ""}>
@@ -252,10 +255,20 @@ function EtapaCard({
                 </Button>
               )}
               {(etapa.status === "em_andamento" || etapa.status === "rejeitada") && (
-                <Button size="sm" onClick={() => onSubmit(etapa)}>
+                <Button 
+                  size="sm" 
+                  onClick={() => onSubmit(etapa)}
+                  disabled={!allItensConcluidos}
+                  title={!allItensConcluidos ? "Conclua todos os itens antes de submeter" : ""}
+                >
                   <Send className="h-4 w-4 mr-1" />
                   Submeter
                 </Button>
+              )}
+              {(etapa.status === "em_andamento" || etapa.status === "rejeitada") && hasItens && !allItensConcluidos && (
+                <span className="text-xs text-muted-foreground">
+                  Conclua todos os itens
+                </span>
               )}
               {etapa.status === "submetida" && (
                 <span className="text-sm text-muted-foreground">Aguardando revisão...</span>
