@@ -30,7 +30,7 @@ function getResizedImageUrl(url: string, width = 320): string {
   );
 
   const separator = renderUrl.includes("?") ? "&" : "?";
-  return `${renderUrl}${separator}width=${width}&quality=30`;
+  return `${renderUrl}${separator}width=${width}&resize=contain&quality=30`;
 }
 
 // Helper to convert image URL to base64 with safe fallbacks
@@ -62,7 +62,13 @@ async function imageToBase64(url: string): Promise<string | null> {
 
       const base64 = encode(buffer);
       const contentType = response.headers.get("content-type") || "image/jpeg";
-      const mimeType = contentType.split(";")[0].trim();
+      const mimeType = contentType.split(";")[0].trim().toLowerCase();
+
+      // jsPDF in edge runtime is reliable with JPEG/PNG. Skip unsupported transformed formats (ex: webp)
+      if (!["image/jpeg", "image/jpg", "image/png"].includes(mimeType)) {
+        continue;
+      }
+
       return `data:${mimeType};base64,${base64}`;
     } catch (error) {
       console.error("Error converting image to base64:", error);
