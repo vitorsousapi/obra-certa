@@ -47,6 +47,11 @@ const menuItems = [
     url: "/colaboradores",
     icon: Users,
   },
+  {
+    title: "Calendário",
+    url: "/calendario",
+    icon: CalendarDays,
+  },
 ];
 
 const settingsItems = [

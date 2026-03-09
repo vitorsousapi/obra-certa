@@ -50,6 +50,7 @@ function AppRoutes() {
       <Route path="/obras/:id/editar" element={<ProtectedRoute requiredRole="admin"><ObraForm /></ProtectedRoute>} />
       <Route path="/colaboradores" element={<ProtectedRoute requiredRole="admin"><Colaboradores /></ProtectedRoute>} />
       <Route path="/aprovacoes" element={<ProtectedRoute requiredRole="admin"><Aprovacoes /></ProtectedRoute>} />
+      <Route path="/calendario" element={<ProtectedRoute requiredRole="admin"><Calendario /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
       <Route path="/assinar/:token" element={<AssinarEtapa />} />
       <Route path="/etapa/:token" element={<VisualizarEtapa />} />
