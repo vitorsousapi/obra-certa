@@ -19,7 +19,7 @@ interface GeneratePdfRequest {
 const MAX_IMAGES_PER_ETAPA = 30;
 
 // Helper to fetch image and return a compressed URL for PDF usage
-function getResizedImageUrl(url: string, width = 320): string {
+function getResizedImageUrl(url: string, width = 640): string {
   if (!url.includes("/storage/v1/object/public/")) {
     return url;
   }
@@ -30,7 +30,7 @@ function getResizedImageUrl(url: string, width = 320): string {
   );
 
   const separator = renderUrl.includes("?") ? "&" : "?";
-  return `${renderUrl}${separator}width=${width}&resize=contain&quality=30`;
+  return `${renderUrl}${separator}width=${width}&resize=contain&quality=60`;
 }
 
 // Helper to convert image URL to base64 with safe fallbacks
