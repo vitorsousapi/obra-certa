@@ -16,6 +16,7 @@ import ObraDetalhes from "./pages/admin/ObraDetalhes";
 import Colaboradores from "./pages/admin/Colaboradores";
 import Aprovacoes from "./pages/admin/Aprovacoes";
 import Configuracoes from "./pages/admin/Configuracoes";
+import Calendario from "./pages/admin/Calendario";
 import ColaboradorAtividades from "./pages/colaborador/Atividades";
 import AssinarEtapa from "./pages/AssinarEtapa";
 import VisualizarEtapa from "./pages/VisualizarEtapa";
@@ -49,6 +50,7 @@ function AppRoutes() {
       <Route path="/obras/:id/editar" element={<ProtectedRoute requiredRole="admin"><ObraForm /></ProtectedRoute>} />
       <Route path="/colaboradores" element={<ProtectedRoute requiredRole="admin"><Colaboradores /></ProtectedRoute>} />
       <Route path="/aprovacoes" element={<ProtectedRoute requiredRole="admin"><Aprovacoes /></ProtectedRoute>} />
+      <Route path="/calendario" element={<ProtectedRoute requiredRole="admin"><Calendario /></ProtectedRoute>} />
       <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
       <Route path="/assinar/:token" element={<AssinarEtapa />} />
       <Route path="/etapa/:token" element={<VisualizarEtapa />} />
