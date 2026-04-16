@@ -64,7 +64,17 @@ export function useSendReport() {
         body: { phone: clienteTelefone, message },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract the real error message from the response
+        let realMessage = error.message;
+        try {
+          if (error.context && typeof error.context.json === 'function') {
+            const body = await error.context.json();
+            if (body?.error) realMessage = body.error;
+          }
+        } catch (_) {}
+        throw new Error(realMessage);
+      }
       if (data?.error) throw new Error(data.error);
 
       return data;
