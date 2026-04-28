@@ -43,6 +43,7 @@ import { Trash2, Loader2, Plus } from "lucide-react";
 import { useUpdateEtapa, useDeleteEtapa, useManageEtapaResponsaveis } from "@/hooks/useEtapas";
 import { useEtapaItens, useSaveEtapaItens } from "@/hooks/useEtapaItens";
 import { useColaboradores } from "@/hooks/useColaboradores";
+import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
