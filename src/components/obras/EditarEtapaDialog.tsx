@@ -43,6 +43,7 @@ import { Trash2, Loader2, Plus } from "lucide-react";
 import { useUpdateEtapa, useDeleteEtapa, useManageEtapaResponsaveis } from "@/hooks/useEtapas";
 import { useEtapaItens, useSaveEtapaItens } from "@/hooks/useEtapaItens";
 import { useColaboradores } from "@/hooks/useColaboradores";
+import { EtapaAnexos } from "@/components/etapas/EtapaAnexos";
 import type { Database } from "@/integrations/supabase/types";
 
 type EtapaStatus = Database["public"]["Enums"]["etapa_status"];
@@ -419,6 +420,10 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
               )}
             />
 
+            {/* Anexos */}
+            <div className="border rounded-md p-3">
+              <EtapaAnexos etapaId={etapa.id} />
+            </div>
             <div className="flex justify-between pt-4">
               <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <AlertDialogTrigger asChild>

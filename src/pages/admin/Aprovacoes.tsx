@@ -233,7 +233,7 @@ function EtapaCard({
 
           {/* Anexos */}
           <div className="border rounded-md p-3">
-            <EtapaAnexos etapaId={etapa.id} />
+            <EtapaAnexos etapaId={etapa.id} readOnly />
           </div>
 
           {/* Observações do colaborador */}
