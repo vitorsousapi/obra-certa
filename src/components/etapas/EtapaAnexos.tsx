@@ -146,33 +146,47 @@ export function EtapaAnexos({ etapaId, readOnly = false }: EtapaAnexosProps) {
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        
-        let { width, height } = img;
-        
-        // Only resize if larger than maxWidth
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+
+        // Crop to 5:7 aspect ratio (portrait)
+        const targetRatio = 5 / 7;
+        const srcRatio = img.width / img.height;
+        let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+
+        if (srcRatio > targetRatio) {
+          // Image is wider than 5:7 — crop sides
+          sWidth = Math.round(img.height * targetRatio);
+          sx = Math.round((img.width - sWidth) / 2);
+        } else if (srcRatio < targetRatio) {
+          // Image is taller than 5:7 — crop top/bottom
+          sHeight = Math.round(img.width / targetRatio);
+          sy = Math.round((img.height - sHeight) / 2);
+        }
+
+        // Determine output size, capped by maxWidth
+        let outWidth = sWidth;
+        let outHeight = sHeight;
+        if (outWidth > maxWidth) {
+          outHeight = Math.round((outHeight * maxWidth) / outWidth);
+          outWidth = maxWidth;
         }
 
         const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = outWidth;
+        canvas.height = outHeight;
         const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outWidth, outHeight);
 
         canvas.toBlob(
           (blob) => {
-            if (blob && blob.size < file.size) {
-              // Use compressed version
-              const compressedFile = new File([blob], file.name, {
+            if (blob) {
+              const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+              const processedFile = new File([blob], newName, {
                 type: "image/jpeg",
                 lastModified: file.lastModified,
               });
-              console.log(`Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`);
-              resolve(compressedFile);
+              console.log(`Processed ${file.name} → 5:7 ${outWidth}x${outHeight}: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
+              resolve(processedFile);
             } else {
-              // Original is smaller, keep it
               resolve(file);
             }
           },
