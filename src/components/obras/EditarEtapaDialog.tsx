@@ -420,6 +420,10 @@ export function EditarEtapaDialog({ etapa, obraId, open, onOpenChange }: EditarE
               )}
             />
 
+            {/* Anexos */}
+            <div className="border rounded-md p-3">
+              <EtapaAnexos etapaId={etapa.id} />
+            </div>
             <div className="flex justify-between pt-4">
               <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
                 <AlertDialogTrigger asChild>
